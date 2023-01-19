@@ -2,3 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
+nl_GOF.Rproj
+outfiles
+results
+*.Rout
