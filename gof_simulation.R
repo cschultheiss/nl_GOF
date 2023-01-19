@@ -38,8 +38,8 @@ Ex <- function(x2) -(dnorm(up(x2)) - dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2
 Vx <- function(x2) 1 - (up(x2) * dnorm(up(x2)) - lo(x2) * dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2))) -
   ((dnorm(up(x2)) - dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2))))^2
 
-nsim <- 10
-n.vec <- 10^(3)
+nsim <- 200
+n.vec <- 10^(3:5)
 n.split <- 10
 b <- 1.5
 a <- sqrt(1/3)
