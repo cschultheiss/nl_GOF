@@ -1,3 +1,6 @@
+d <- "/usr/local64.sfs/app/R/R_local/library"
+if(all(d != .libPaths())) .libPaths(c(.libPaths(), d))
+
 require(tictoc)
 require(doRNG)
 require(doSNOW)
