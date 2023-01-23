@@ -47,32 +47,6 @@ n.split <- 10
 b <- 1.5
 a <- sqrt(1/3)
 
-n <- 1e4
-x0 <- rnorm(n)
-x1 <- a * pot(x0 , b)/sqrt(va(b)) + runif(n, -1, 1)
-x2 <- x1 + rnorm(n)
-y <- x0 + pot(x2, 1.5)
-dat <- data.frame(y, x1, x2)
-fi.all <- gam(y ~ s(x1) + s(x2), data = dat)
-sel.all <- (1:2) %in% 
-  foci(abs(fi.all$residuals), dat[,-1])$selectedVar$index
-sel.all0 <- (1:2) %in% 
-  foci(abs(x0 - Ex(x1)), dat[,-1])$selectedVar$index
-sel <- matrix(NA, n.split, dim(dat)[2] - 1)
-mse <- mean((fi.all$residuals - (x0 - Ex(x1)))^2)
-rcor <- cor(fi.all$residuals, x0 - Ex(x1), method = "spearman")
-for(i in 1:10){
-  ind <- sample(n, n/2)
-  fi <- gam(y ~ s(x1) + s(x2), data = dat[-ind,])
-  pred <- predict(fi, newdata = dat[ind,])
-  sel[i,] <- (1:2) %in% 
-    foci(abs(y[ind] - pred), dat[ind, -1])$selectedVar$index
-}
-
-out <- list()
-out$values <- c(mse, rcor, sel.all0, sel.all, colMeans(sel))     
-out
-
 RNGkind("L'Ecuyer-CMRG")
 # make it reproducible
 set.seed(42)
@@ -91,7 +65,10 @@ for (n in n.vec) {
   registerDoSNOW(cl)
   tic()
   res<-foreach(gu = 1:nsim, .combine = rbind,
-               .packages = c("FOCI", "mgcv"), .options.snow = opts) %dorng%{
+               .packages = c("mgcv"), .options.snow = opts) %dorng%{
+                 
+                 if(all(d != .libPaths())) .libPaths(c(.libPaths(), d))
+                 library(FOCI)
                  
                  x0 <- rnorm(n)
                  x1 <- a * pot(x0 , b)/sqrt(va(b)) + runif(n, -1, 1)
