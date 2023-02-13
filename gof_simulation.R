@@ -68,7 +68,7 @@ for (n in n.vec) {
                .packages = c("mgcv"), .options.snow = opts) %dorng%{
                  
                  if(all(d != .libPaths())) .libPaths(c(.libPaths(), d))
-                 library(FOCI)
+                  library(FOCI)
                  
                  x0 <- rnorm(n)
                  x1 <- a * pot(x0 , b)/sqrt(va(b)) + runif(n, -1, 1)
@@ -80,19 +80,28 @@ for (n in n.vec) {
                    foci(abs(fi.all$residuals), dat[,-1])$selectedVar$index
                  sel.all0 <- (1:2) %in% 
                    foci(abs(x0 - Ex(x1)), dat[,-1])$selectedVar$index
-                 sel <- matrix(NA, n.split, dim(dat)[2] - 1)
+                 
                  mse <- mean((fi.all$residuals - (x0 - Ex(x1)))^2)
                  rcor <- cor(fi.all$residuals, x0 - Ex(x1), method = "spearman")
-                 for(i in 1:10){
+                 
+                 sel <- matrix(NA, n.split, dim(dat)[2] - 1)
+                 steps <- matrix(NA, nrow = n.split, ncol = dim(dat)[2] - 1)
+                 for(i in 1:n.split){
                    ind <- sample(n, n/2)
                    fi <- gam(y ~ s(x1) + s(x2), data = dat[-ind,])
                    pred <- predict(fi, newdata = dat[ind,])
-                   sel[i,] <- (1:2) %in% 
-                     foci(abs(y[ind] - pred), dat[ind, -1])$selectedVar$index
+                   fo <- foci(abs(y[ind] - pred), dat[ind, -1])
+                   steps[i, fo$selectedVar$index] <- diff(c(0, fo$stepT))
+                   nsel <- length(fo$selectedVar$index)
+                   sel[i,] <- c(fo$selectedVar$index, rep(NA, dim(dat)[2] - 1 - nsel))
                  }
                  
                  out <- list()
-                 out$values <- c(mse, rcor, sel.all0, sel.all, colMeans(sel))     
+                 out$values <- c(mse, rcor, sel.all0, sel.all)
+                 colnames(steps) <- colnames(dat)[-1]
+                 out$steps <- steps
+                 out$sel <- sel
+                 
                  out
                }
   toc()
@@ -101,10 +110,14 @@ for (n in n.vec) {
   # store output list to matrix
   res.val <- matrix(unlist(res[, "values"]), byrow = TRUE, nrow = nsim)
   colnames(res.val) <- c("mse", "rcor",
-                         paste(rep(c("all0", "all", "split"), each = 2), rep(c("x1", "x2"), 3), sep ="."))
+                         paste(rep(c("all0", "all"), each = 2), rep(c("x1", "x2")), sep ="."))
+  
+  res.steps <- array(unlist(res[,"steps"]), dim = c(n.split, p, nsim), dimnames = list(NULL,
+                                                                                 colnames(res[1,"steps"][[1]]), NULL))
+  res.sel <- array(unlist(res[,"sel"]), dim = c(n.split, p, nsim))
   
   # store output quantities, sample size, random seed, commit
-  simulation <- list(results = res.val,
+  simulation <- list(all = res.val, steps = res.steps, sel = res.sel
                      n = n, r.seed = attr(res, "rng"), "commit" = commit)
   # create unique filename based on sample size and time
   resname <- paste0("results n=", n, " ", format(Sys.time(), "%d-%b-%Y %H.%M"))
