@@ -41,7 +41,7 @@ Ex <- function(x2) -(dnorm(up(x2)) - dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2
 Vx <- function(x2) 1 - (up(x2) * dnorm(up(x2)) - lo(x2) * dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2))) -
   ((dnorm(up(x2)) - dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2))))^2
 
-nsim <- 200
+nsim <- 20
 n.vec <- 10^(3:4)
 n.split <- 10
 b <- 1.5
@@ -117,12 +117,15 @@ for (n in n.vec) {
   res.sel <- array(unlist(res[,"sel"]), dim = c(n.split, p, nsim))
   
   # store output quantities, sample size, random seed, commit
-  simulation <- list(all = res.val, steps = res.steps, sel = res.sel
+  simulation <- list(all = res.val, steps = res.steps, sel = res.sel,
                      n = n, r.seed = attr(res, "rng"), "commit" = commit)
   # create unique filename based on sample size and time
   resname <- paste0("results n=", n, " ", format(Sys.time(), "%d-%b-%Y %H.%M"))
   # save the file to the folder
   if (save) save(simulation, file = paste("results/", newdir, "/", resname, ".RData", sep = ""))
   print(apply(res.val, 2, mean))
+  for (j in 1:p){
+    print(paste(j, ": ", sum(res.sel == j, na.rm = TRUE), sep = ""))
+  }
 
 }
