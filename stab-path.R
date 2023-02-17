@@ -3,6 +3,9 @@ steps <- simulation$steps
 sel <- simulation$sel
 
 lims <- c(0, unique(sort(simulation$steps[!is.na(simulation$steps)])))
+if (length(lims > 1000)){
+  lims <- seq(0, max(lims), length.out = 1000)
+}
 
 steps.sorted <- array(NA, dim(steps))
 
