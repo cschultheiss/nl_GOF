@@ -41,9 +41,9 @@ Ex <- function(x2) -(dnorm(up(x2)) - dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2
 Vx <- function(x2) 1 - (up(x2) * dnorm(up(x2)) - lo(x2) * dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2))) -
   ((dnorm(up(x2)) - dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2))))^2
 
-nsim <- 20
-n.vec <- 10^(3:4)
-n.split <- 10
+nsim <- 200
+n.vec <- 10^(2:5)
+n.split <- 50
 b <- 1.5
 a <- sqrt(1/3)
 
