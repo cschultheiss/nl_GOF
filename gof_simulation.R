@@ -44,6 +44,7 @@ Vx <- function(x2) 1 - (up(x2) * dnorm(up(x2)) - lo(x2) * dnorm(lo(x2)))/(pnorm(
 nsim <- 200
 n.vec <- 10^(2:5)
 n.split <- 50
+p <- 2
 b <- 1.5
 a <- sqrt(1/3)
 
