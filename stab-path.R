@@ -19,7 +19,6 @@ reset <- function(steps, lim){
   }
   return(steps)
 }
-aperm(apply(steps.sorted, c(1,3), reset, lim = 0), c(2,1,3))
 
 all.s <- array(NA, dim = c(dim(steps), length(lims)))
 all.s[] <- sapply(lims, function(lim) aperm(apply(steps.sorted, c(1,3), reset, lim = lim), c(2,1,3)))
