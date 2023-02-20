@@ -62,3 +62,10 @@ for (s in 1:length(flz)){
     matplot(lims, t(frac.bounds[,j,]), type = "l", main = simulation$n, lty = 2, col = j, add = TRUE)
   }
 }
+
+par(mfrow = c(2,2))
+for (file in flz){
+  load(paste(folder, "/", file, sep = ""))
+  steps <- simulation$steps
+  hist(steps[, 1,])
+}
