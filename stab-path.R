@@ -28,7 +28,9 @@ all.s[] <- sapply(lims, function(lim) aperm(apply(steps.sorted, c(1,3), reset, l
 all.s.var <- array(NA, dim(all.s))
 for (i in 1:dim(steps)[1]){
   for (j in 1:dim(steps)[3]){
-    all.s.var[i,,j,] <- all.s[i, order(sel[i,,j]),j,]
+    sel.ij <- sel[i,,j]
+    sel.ij[is.na(sel.ij)] <- setdiff(1:p, sel.ij)
+    all.s.var[i,,j,] <- all.s[i, order(sel.ij),j,]
   }
 }
 frac.run <- apply(!is.na(all.s.var), 2:4, mean)
