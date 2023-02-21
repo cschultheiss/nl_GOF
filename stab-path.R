@@ -8,6 +8,8 @@ ns <- numeric(length(flz))
 for (file in flz){
   s <- s + 1
   load(paste(folder, "/", file, sep = ""))
+  p <- dim(simulation$steps)[2]
+  
   steps <- simulation$steps
   
   sel <- simulation$sel
@@ -50,6 +52,7 @@ for (file in flz){
   ns[s] <- simulation$n
 }
 
+par(mfrow = c(2,2))
 for (s in 1:length(flz)){
   lims <- lims.list[[s]]
   all.s.var <- all.s.list[[s]]
