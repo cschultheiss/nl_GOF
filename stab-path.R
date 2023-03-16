@@ -64,6 +64,8 @@ for (s in 1:length(flz)){
   for(j in 1:p){
     matplot(lims, t(frac.bounds[,j,]), type = "l", main = simulation$n, lty = 2, col = j, add = TRUE)
   }
+  # abline(h = 0.5, lty = 2, col = "gray")
+  # abline(v = 0.052, lty = 2, col = "gray")
 }
 
 par(mfrow = c(2,2))
@@ -71,4 +73,13 @@ for (file in flz){
   load(paste(folder, "/", file, sep = ""))
   steps <- simulation$steps
   hist(steps[, 1,])
+}
+
+par(mfrow = c(2,2))
+for (file in flz){
+  load(paste(folder, "/", file, sep = ""))
+  steps <- simulation$steps
+  sel <- simulation$sel
+  steps.s <- steps[, 1,][sel[,1,] == 1]
+  hist(steps.s, main = mlv(steps.s, method = "meanshift", na.rm = TRUE)[1], freq = FALSE)
 }
