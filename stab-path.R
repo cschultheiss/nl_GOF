@@ -89,12 +89,29 @@ for (s in 1:length(flz)){
   # abline(v = 0.052, lty = 2, col = "gray")
 }
 
-# par(mfrow = c(2,2))
-# for (file in flz){
-#   load(paste(folder, "/", file, sep = ""))
-#   steps.in <- simulation$steps.in
-#   hist(steps.in[, 1,])
-# }
+# ecdf
+par(mfrow = c(2,2))
+for (s in 1:length(flz)){
+  plot.ecdf(apply(!is.na(all.s.list$out[[s]][,1,,1]), 2, mean), xlim = c(0, 1), main = ns[s])
+  plot.ecdf(apply(!is.na(all.s.list$out[[s]][,2,,1]), 2, mean), col = 2, add= TRUE)
+}
+
+#ROC
+par(mfrow = c(2,2))
+for (s in 1:length(flz)){
+  B <- dim(all.s.list$out[[s]])[1]
+  pis <- (0:B)/B
+  p1 <- apply(!is.na(all.s.list$out[[s]][,1,,1]), 2, mean)
+  p2 <- apply(!is.na(all.s.list$out[[s]][,2,,1]), 2, mean)
+  r1 <- sapply(pis, function(pi) mean(p1 <= pi))
+  r2 <- sapply(pis, function(pi) mean(p2 <= pi))
+  # qqplot(apply(!is.na(all.s.list$out[[s]][,2,,1]), 2, mean), apply(!is.na(all.s.list$out[[s]][,1,,1]), 2, mean),
+         # xlim = c(0,1), ylim = c(0,1), type = "s")
+  plot(r1, r2, xlim = c(0,1), ylim = c(0,1), type = "s", main = ns[s])
+  points(mean(p1 <= 0.5), mean(p2 <= 0.5), pch = 4)
+  points(mean(is.na(all.s.list$out[[s]][1,1,,1])), mean(is.na(all.s.list$out[[s]][1,2,,1])), pch = 2, col = 2)
+  abline(0,1, col = "gray", lty= 2)
+}
 
 par(mfrow = c(2,2))
 for (file in flz){
