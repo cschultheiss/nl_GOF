@@ -67,6 +67,9 @@ for (file in flz){
      steps.out.sorted, steps.in, steps.out, sel.in, sel.out, lims)
 }
 
+reverse <- FALSE
+sim.sel <- FALSE
+B <- dim(all.s.list$out[[1]])[1]
 
 par(mfrow = c(2,2))
 for (s in 1:length(flz)){
@@ -74,6 +77,9 @@ for (s in 1:length(flz)){
   add = FALSE
   for (split in c("out", "in")){
     all.s.var <- all.s.list[[split]][[s]]
+    if (sim.sel) {
+      all.s.var <- all.s.var[1:(B/2),,,] * all.s.var[(B/2 + 1):B,,,]
+    }
     frac.run <- apply(!is.na(all.s.var), 2:4, mean)
     frac.loc <- apply(frac.run, c(1,3), mean)
     matplot(lims, t(frac.loc), type = "l", main = ns[s], lty = 1 + 1 * add, ylab = "selection fraction",
@@ -92,23 +98,46 @@ for (s in 1:length(flz)){
 # ecdf
 par(mfrow = c(2,2))
 for (s in 1:length(flz)){
-  plot.ecdf(apply(!is.na(all.s.list$out[[s]][,1,,1]), 2, mean), xlim = c(0, 1), main = ns[s])
-  plot.ecdf(apply(!is.na(all.s.list$out[[s]][,2,,1]), 2, mean), col = 2, add= TRUE)
+  all.s.0 <- all.s.list$out[[s]][,,,1]
+  if (sim.sel) {
+    if(reverse) {
+      all.s.0 <- pmax(all.s.0[1:(B/2),,], all.s.0[(B/2 + 1):B,,], na.rm = TRUE)
+    } else {
+      all.s.0 <- all.s.0[1:(B/2),,] * all.s.0[(B/2 + 1):B,,]
+    }
+    
+  }
+    plot.ecdf(apply(!is.na(all.s.0[,1,]), 2, mean), xlim = c(0, 1), main = ns[s])
+    plot.ecdf(apply(!is.na(all.s.0[,2,]), 2, mean), col = 2, add= TRUE)
+    abline(v =0.75)
+    abline(h = 0.5)
 }
 
 #ROC
 par(mfrow = c(2,2))
 for (s in 1:length(flz)){
-  B <- dim(all.s.list$out[[s]])[1]
-  pis <- (0:B)/B
-  p1 <- apply(!is.na(all.s.list$out[[s]][,1,,1]), 2, mean)
-  p2 <- apply(!is.na(all.s.list$out[[s]][,2,,1]), 2, mean)
+  all.s.0 <- all.s.list$out[[s]][,,,1]
+  Bb <- B
+  pi0 <- 0.5
+  if (sim.sel) {
+    if(reverse) {
+      all.s.0 <- pmax(all.s.0[1:(B/2),,] , all.s.0[(B/2 + 1):B,,], na.rm = TRUE)
+      pi0 <- 0.75
+    } else {
+      all.s.0 <- all.s.0[1:(B/2),,] * all.s.0[(B/2 + 1):B,,]
+      pi0 <- 0.25
+    }
+    Bb <- Bb / 2
+  }
+  pis <- (0:Bb)/Bb
+  p1 <- apply(!is.na(all.s.0[,1,]), 2, mean)
+  p2 <- apply(!is.na(all.s.0[,2,]), 2, mean)
   r1 <- sapply(pis, function(pi) mean(p1 <= pi))
   r2 <- sapply(pis, function(pi) mean(p2 <= pi))
   # qqplot(apply(!is.na(all.s.list$out[[s]][,2,,1]), 2, mean), apply(!is.na(all.s.list$out[[s]][,1,,1]), 2, mean),
          # xlim = c(0,1), ylim = c(0,1), type = "s")
   plot(r1, r2, xlim = c(0,1), ylim = c(0,1), type = "s", main = ns[s])
-  points(mean(p1 <= 0.5), mean(p2 <= 0.5), pch = 4)
+  points(mean(p1 <= pi0), mean(p2 <= pi0), pch = 4)
   points(mean(is.na(all.s.list$out[[s]][1,1,,1])), mean(is.na(all.s.list$out[[s]][1,2,,1])), pch = 2, col = 2)
   abline(0,1, col = "gray", lty= 2)
 }
