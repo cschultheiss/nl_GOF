@@ -78,7 +78,12 @@ for (s in 1:length(flz)){
   for (split in c("out", "in")){
     all.s.var <- all.s.list[[split]][[s]]
     if (sim.sel) {
-      all.s.var <- all.s.var[1:(B/2),,,] * all.s.var[(B/2 + 1):B,,,]
+      if (reverse){
+        all.s.var <- pmax(all.s.var[1:(B/2),,,], all.s.var[(B/2 + 1):B,,,], na.rm = TRUE)
+      } else {
+        all.s.var <- all.s.var[1:(B/2),,,] * all.s.var[(B/2 + 1):B,,,]
+      }
+      
     }
     frac.run <- apply(!is.na(all.s.var), 2:4, mean)
     frac.loc <- apply(frac.run, c(1,3), mean)
@@ -109,8 +114,8 @@ for (s in 1:length(flz)){
   }
     plot.ecdf(apply(!is.na(all.s.0[,1,]), 2, mean), xlim = c(0, 1), main = ns[s])
     plot.ecdf(apply(!is.na(all.s.0[,2,]), 2, mean), col = 2, add= TRUE)
-    abline(v =0.75)
-    abline(h = 0.5)
+    # abline(v =0.75)
+    # abline(h = 0.5)
 }
 
 #ROC
