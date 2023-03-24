@@ -7,6 +7,7 @@ require(doSNOW)
 require(git2r)
 require(FOCI)
 require(mgcv)
+require(sfsmisc)
 
 commit <- revparse_single(revision = "HEAD")
 print(paste("Run on commit", commit$sha, 'i.e.:', commit$summary))
@@ -76,7 +77,8 @@ for (n in n.vec) {
                  x2 <- x1 + rnorm(n)
                  y <- x0 + pot(x2, 1.5)
                  dat <- data.frame(y, x1, x2)
-                 fi.all <- gam(y ~ s(x1) + s(x2), data = dat)
+                 form <- wrapFormula(y ~., data = dat)
+                 fi.all <- gam(form, data = dat)
                  sel.all <- (1:2) %in% 
                    foci(abs(fi.all$residuals), dat[,-1])$selectedVar$index
                  sel.all0 <- (1:2) %in% 
@@ -90,8 +92,8 @@ for (n in n.vec) {
                  steps12 <- steps21 <- steps22 <- steps11
                  for(i in 1:n.split){
                    ind <- sample(n, n/2)
-                   fi1 <- gam(y ~ s(x1) + s(x2), data = dat[ind,])
-                   fi2 <- gam(y ~ s(x1) + s(x2), data = dat[-ind,])
+                   fi1 <- gam(form, data = dat[ind,])
+                   fi2 <- gam(form, data = dat[-ind,])
                    pred11 <- predict(fi1, newdata = dat[ind,])
                    pred12 <- predict(fi1, newdata = dat[-ind,])
                    pred21 <- predict(fi2, newdata = dat[ind,])
@@ -125,7 +127,7 @@ for (n in n.vec) {
   # store output list to matrix
   res.val <- matrix(unlist(res[, "values"]), byrow = TRUE, nrow = nsim)
   colnames(res.val) <- c("mse", "rcor",
-                         paste(rep(c("all0", "all"), each = 2), rep(c("x1", "x2")), sep ="."))
+                         paste(rep(c("all0", "all"), each = p), rep(colnames(res[1,"steps.in"][[1]]), 2), sep ="."))
   
   res.steps.in <- array(unlist(res[,"steps.in"]), dim = c(2 * n.split, p, nsim), dimnames = list(NULL,
                                                                                  colnames(res[1,"steps.in"][[1]]), NULL))
