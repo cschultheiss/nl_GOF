@@ -33,19 +33,21 @@ progress <- function(n, tag) {
 
 opts <- list(progress = progress)
 
-pot <- function(x, b) sign(x)*abs(x)^b
-va <- function(b) 2^(b)*gamma(b + 0.5)/sqrt(pi)
-up <- function(x2) pot((x2 + 1)*sqrt(va(b))/a, 1/b)
-lo <- function(x2) pot((x2 - 1)*sqrt(va(b))/a, 1/b)
-fx2 <- function(x2) 0.5 *(pnorm(up(x2)) - pnorm(lo(x2)))
-Ex <- function(x2) -(dnorm(up(x2)) - dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2)))
-Vx <- function(x2) 1 - (up(x2) * dnorm(up(x2)) - lo(x2) * dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2))) -
-  ((dnorm(up(x2)) - dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2))))^2
+# pot <- function(x, b) sign(x)*abs(x)^b
+# va <- function(b) 2^(b)*gamma(b + 0.5)/sqrt(pi)
+# up <- function(x2) pot((x2 + 1)*sqrt(va(b))/a, 1/b)
+# lo <- function(x2) pot((x2 - 1)*sqrt(va(b))/a, 1/b)
+# fx2 <- function(x2) 0.5 *(pnorm(up(x2)) - pnorm(lo(x2)))
+# Ex <- function(x2) -(dnorm(up(x2)) - dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2)))
+# Vx <- function(x2) 1 - (up(x2) * dnorm(up(x2)) - lo(x2) * dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2))) -
+#   ((dnorm(up(x2)) - dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2))))^2
+
+Ex <- function(x1, x2) 0.5 * (x1^2 + x2^2 + 2)
 
 nsim <- 200
 n.vec <- 10^(2:5)
 n.split <- 25
-p <- 2
+p <- 3
 b <- 1.5
 a <- sqrt(1/3)
 
@@ -67,25 +69,27 @@ for (n in n.vec) {
   registerDoSNOW(cl)
   tic()
   res<-foreach(gu = 1:nsim, .combine = rbind,
-               .packages = c("mgcv"), .options.snow = opts) %dorng%{
+               .packages = c("mgcv", "sfsmisc"), .options.snow = opts) %dorng%{
                  
                  if(all(d != .libPaths())) .libPaths(c(.libPaths(), d))
                   library(FOCI)
                  
                  x0 <- rnorm(n)
-                 x1 <- a * pot(x0 , b)/sqrt(va(b)) + runif(n, -1, 1)
-                 x2 <- x1 + rnorm(n)
-                 y <- x0 + pot(x2, 1.5)
-                 dat <- data.frame(y, x1, x2)
+                 x1 <- sqrt(0.5) * (x0 + rnorm(n))
+                 x2 <- sqrt(0.5) * (x0 + rnorm(n))
+                 x3 <- sqrt(0.5) * (x1 + rnorm(n))
+                 x4 <- sqrt(0.5) * (x2 + rnorm(n))
+                 y <- x3^2 + x4^2
+                 dat <- data.frame(y, x0, x1, x2)
                  form <- wrapFormula(y ~., data = dat)
                  fi.all <- gam(form, data = dat)
-                 sel.all <- (1:2) %in% 
+                 sel.all <- (1:3) %in% 
                    foci(abs(fi.all$residuals), dat[,-1])$selectedVar$index
-                 sel.all0 <- (1:2) %in% 
-                   foci(abs(x0 - Ex(x1)), dat[,-1])$selectedVar$index
+                 sel.all0 <- (1:3) %in% 
+                   foci(abs(y - Ex(x1, x2)), dat[,-1])$selectedVar$index
                  
-                 mse <- mean((fi.all$residuals - (x0 - Ex(x1)))^2)
-                 rcor <- cor(fi.all$residuals, x0 - Ex(x1), method = "spearman")
+                 mse <- mean((fi.all$fitted.values - Ex(x1, x2))^2)
+                 rcor <- cor(fi.all$residuals, y - Ex(x1, x2), method = "spearman")
                  sel11 <- sel12 <- sel21 <- sel22 <- matrix(NA, n.split, dim(dat)[2] - 1)
                  steps11 <-  matrix(NA, nrow = n.split, ncol = dim(dat)[2] - 1)
                  colnames(steps11) <- colnames(dat)[-1]
