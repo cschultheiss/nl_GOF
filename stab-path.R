@@ -1,6 +1,6 @@
 require(latex2exp)
 require(modeest)
-folder <- "results/16-Mar-2023 13.42"
+folder <- "results/24-Mar-2023 11.50"
 flz <- list.files(folder)
 n.lim <- 200
 s <- 0
@@ -70,6 +70,8 @@ for (file in flz){
 reverse <- FALSE
 sim.sel <- FALSE
 B <- dim(all.s.list$out[[1]])[1]
+stab <- 1
+unstab <- (1:p)[-stab]
 
 par(mfrow = c(2,2))
 for (s in 1:length(flz)){
@@ -87,7 +89,11 @@ for (s in 1:length(flz)){
     }
     frac.run <- apply(!is.na(all.s.var), 2:4, mean)
     frac.loc <- apply(frac.run, c(1,3), mean)
-    matplot(lims, t(frac.loc), type = "l", main = ns[s], lty = 1 + 1 * add, ylab = "selection fraction",
+    frac.stab <- apply(matrix(frac.loc[stab,], nrow = length(stab)), 2, mean)
+    frac.unstab <- apply(matrix(frac.loc[unstab,], nrow = length(unstab)), 2, mean)
+    # matplot(lims, t(frac.loc), type = "l", main = ns[s], lty = 1 + 1 * add, ylab = "selection fraction",
+    #         xlab = TeX("$\\delta$ limit"), ylim = c(0, 1), add = add)
+    matplot(lims, cbind(frac.stab, frac.unstab), type = "l", main = ns[s], lty = 1 + 1 * add, ylab = "selection fraction",
             xlab = TeX("$\\delta$ limit"), ylim = c(0, 1), add = add)
     # frac.bounds <- apply(frac.run, c(1,3), quantile, probs = c(0.025, 0.975))
     # for(j in 1:p){
@@ -112,8 +118,16 @@ for (s in 1:length(flz)){
     }
     
   }
-    plot.ecdf(apply(!is.na(all.s.0[,1,]), 2, mean), xlim = c(0, 1), main = ns[s])
-    plot.ecdf(apply(!is.na(all.s.0[,2,]), 2, mean), col = 2, add= TRUE)
+  
+  frac.stab <- frac.unstab <- numeric(0)
+  for (j in stab){
+    frac.stab <- c(frac.stab, apply(!is.na(all.s.0[,j,]), 2, mean))
+  }
+  for (j in unstab){
+    frac.unstab <- c(frac.unstab, apply(!is.na(all.s.0[,j,]), 2, mean))
+  }
+    plot.ecdf(frac.stab, xlim = c(0, 1), main = ns[s])
+    plot.ecdf(frac.unstab, col = 2, add= TRUE)
     # abline(v =0.75)
     # abline(h = 0.5)
 }
@@ -134,16 +148,20 @@ for (s in 1:length(flz)){
     }
     Bb <- Bb / 2
   }
-  pis <- (0:Bb)/Bb
-  p1 <- apply(!is.na(all.s.0[,1,]), 2, mean)
-  p2 <- apply(!is.na(all.s.0[,2,]), 2, mean)
-  r1 <- sapply(pis, function(pi) mean(p1 <= pi))
-  r2 <- sapply(pis, function(pi) mean(p2 <= pi))
+  frac.stab <- frac.unstab <- numeric(0)
+  for (j in stab){
+    frac.stab <- c(frac.stab, apply(!is.na(all.s.0[,j,]), 2, mean))
+  }
+  for (j in unstab){
+    frac.unstab <- c(frac.unstab, apply(!is.na(all.s.0[,j,]), 2, mean))
+  }
+  r1 <- sapply(pis, function(pi) mean(frac.unstab <= pi))
+  r2 <- sapply(pis, function(pi) mean(frac.stab <= pi))
   # qqplot(apply(!is.na(all.s.list$out[[s]][,2,,1]), 2, mean), apply(!is.na(all.s.list$out[[s]][,1,,1]), 2, mean),
          # xlim = c(0,1), ylim = c(0,1), type = "s")
   plot(r1, r2, xlim = c(0,1), ylim = c(0,1), type = "s", main = ns[s])
-  points(mean(p1 <= pi0), mean(p2 <= pi0), pch = 4)
-  points(mean(is.na(all.s.list$out[[s]][1,1,,1])), mean(is.na(all.s.list$out[[s]][1,2,,1])), pch = 2, col = 2)
+  points(mean(frac.unstab <= pi0), mean(frac.stab <= pi0), pch = 4)
+  points(mean(is.na(all.s.list$out[[s]][1,unstab,,1])), mean(is.na(all.s.list$out[[s]][1,stab,,1])), pch = 2, col = 2)
   abline(0,1, col = "gray", lty= 2)
 }
 
