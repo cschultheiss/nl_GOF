@@ -1,6 +1,6 @@
 require(latex2exp)
 require(modeest)
-folder <- "results/24-Mar-2023 11.50"
+folder <- "results/16-Mar-2023 13.42"
 flz <- list.files(folder)
 n.lim <- 200
 s <- 0
@@ -70,7 +70,7 @@ for (file in flz){
 reverse <- FALSE
 sim.sel <- FALSE
 B <- dim(all.s.list$out[[1]])[1]
-stab <- 1
+stab <- 2
 unstab <- (1:p)[-stab]
 
 par(mfrow = c(2,2))
@@ -165,11 +165,11 @@ for (s in 1:length(flz)){
   abline(0,1, col = "gray", lty= 2)
 }
 
-par(mfrow = c(2,2))
-for (file in flz){
-  load(paste(folder, "/", file, sep = ""))
-  steps.in <- simulation$steps.in
-  sel.in <- simulation$sel.in
-  steps.in.s <- steps.in[, 1,][sel.in[,1,] == 1]
-  hist(steps.in.s, main = mlv(steps.in.s, method = "meanshift", na.rm = TRUE)[1], freq = FALSE)
-}
+# par(mfrow = c(2,2))
+# for (file in flz){
+#   load(paste(folder, "/", file, sep = ""))
+#   steps.in <- simulation$steps.in
+#   sel.in <- simulation$sel.in
+#   steps.in.s <- steps.in[, unstab,][sel.in[,1,] %in% unstab]
+#   hist(steps.in.s, main = mlv(steps.in.s, method = "meanshift", na.rm = TRUE)[1], freq = FALSE)
+# }
