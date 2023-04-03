@@ -69,6 +69,7 @@ for (file in flz){
 
 reverse <- FALSE
 sim.sel <- FALSE
+add.split <- TRUE
 B <- dim(all.s.list$out[[1]])[1]
 stab <- 2
 unstab <- (1:p)[-stab]
@@ -132,6 +133,13 @@ for (s in 1:length(flz)){
     # abline(h = 0.5)
 }
 
+bound <- function(theta, B, p, t1){
+  mins <- minD(theta, B/2)
+  fac <- t1 / p
+  ind <- min(which(mins < fac))
+  ind / B
+}
+
 #ROC
 par(mfrow = c(2,2))
 for (s in 1:length(flz)){
@@ -155,13 +163,65 @@ for (s in 1:length(flz)){
   for (j in unstab){
     frac.unstab <- c(frac.unstab, apply(!is.na(all.s.0[,j,]), 2, mean))
   }
+  pis <- (0:Bb)/Bb
   r1 <- sapply(pis, function(pi) mean(frac.unstab <= pi))
   r2 <- sapply(pis, function(pi) mean(frac.stab <= pi))
+  
+  avg.frac <- apply(is.na(all.s.0), 3, mean)
+  all.frac <- apply(is.na(all.s.0), 2:3, mean)
+  sd.frac <- apply(all.frac, 2, sd)
+  # bds <- sapply(round(avg.frac, 2), function(avg) bound(avg, B, p, 0.1))
+  which.sel <- t(all.frac) >= (avg.frac + 0* sd.frac)
+  # which.sel.tau <- t(all.frac) > bds
   # qqplot(apply(!is.na(all.s.list$out[[s]][,2,,1]), 2, mean), apply(!is.na(all.s.list$out[[s]][,1,,1]), 2, mean),
          # xlim = c(0,1), ylim = c(0,1), type = "s")
   plot(r1, r2, xlim = c(0,1), ylim = c(0,1), type = "s", main = ns[s])
   points(mean(frac.unstab <= pi0), mean(frac.stab <= pi0), pch = 4)
+  points(mean(is.na(all.s.list$out[[s]][1,unstab,,1])), mean(is.na(all.s.list$out[[s]][1,stab,,1])), pch = 2, col = 4)
+  points(mean(which.sel[,unstab]), mean(which.sel[,stab]), col = 3, pch = 3)
+  # points(mean(which.sel.tau[,unstab]), mean(which.sel.tau[,stab]), col = 4, pch = 4)
+  abline(0,1, col = "gray", lty= 2)
+  
+  if(add.split){
+    pv <- apply(1 * is.na(all.s.0), 3, wilc.split)
+    pis <- sort(unique(c(pv)))
+    r1 <- sapply(pis, function(pi) mean(pv[unstab,] <= pi))
+    r2 <- sapply(pis, function(pi) mean(pv[stab,] <= pi))
+    
+    lines(r1, r2, xlim = c(0,1), ylim = c(0,1), type = "s", main = ns[s], col = 2)
+    pi0 <- 1e-3
+    points(mean(pv[unstab,] <= pi0), mean(pv[stab,] <= pi0), pch = 4, col = 2)
+  }
+}
+
+#ROC alt
+par(mfrow = c(2,2))
+for (s in 1:length(flz)){
+  all.s.0 <- all.s.list$out[[s]][,,,1]
+  Bb <- B
+  pi0 <- 0.05
+  if (sim.sel) {
+    if(reverse) {
+      all.s.0 <- pmax(all.s.0[1:(B/2),,] , all.s.0[(B/2 + 1):B,,], na.rm = TRUE)
+      pi0 <- 0.75
+    } else {
+      all.s.0 <- all.s.0[1:(B/2),,] * all.s.0[(B/2 + 1):B,,]
+      pi0 <- 0.25
+    }
+    Bb <- Bb / 2
+  }
+
+  pv <- apply(1 * is.na(all.s.0), 3, wilc.split)
+  
+  pis <- sort(unique(c(pv)))
+  
+  r1 <- sapply(pis, function(pi) mean(pv[unstab,] <= pi))
+  r2 <- sapply(pis, function(pi) mean(pv[stab,] <= pi))
+  
+  plot(r1, r2, xlim = c(0,1), ylim = c(0,1), type = "s", main = ns[s])
+  points(mean(pv[unstab,] <= pi0), mean(pv[stab,] <= pi0), pch = 4)
   points(mean(is.na(all.s.list$out[[s]][1,unstab,,1])), mean(is.na(all.s.list$out[[s]][1,stab,,1])), pch = 2, col = 2)
+  # points(mean(which.sel.tau[,unstab]), mean(which.sel.tau[,stab]), col = 4, pch = 4)
   abline(0,1, col = "gray", lty= 2)
 }
 
