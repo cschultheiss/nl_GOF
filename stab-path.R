@@ -189,7 +189,7 @@ for (s in 1:length(flz)){
     r2 <- sapply(pis, function(pi) mean(pv[stab,] <= pi))
     
     lines(r1, r2, xlim = c(0,1), ylim = c(0,1), type = "s", main = ns[s], col = 2)
-    pi0 <- 1e-3
+    pi0 <- 0.05
     points(mean(pv[unstab,] <= pi0), mean(pv[stab,] <= pi0), pch = 4, col = 2)
   }
 }
