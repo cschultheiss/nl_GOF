@@ -1,6 +1,6 @@
 require(latex2exp)
 require(modeest)
-folder <- "results/16-Mar-2023 13.42"
+folder <- "results/04-Apr-2023 12.21"
 flz <- list.files(folder)
 nf <- length(flz)
 analysis <- paste(folder, "/analysis.RData", sep = "")
@@ -81,7 +81,7 @@ sim.sel <- FALSE
 add.split <- TRUE
 B <- dim(all.s.list$out[[1]])[1]
 p <- dim(all.s.list$out[[1]])[2]
-stab <- 2
+stab <- c(1,5)
 unstab <- (1:p)[-stab]
 
 par(mfrow = c(2,2))
