@@ -1,6 +1,6 @@
 require(latex2exp)
 require(modeest)
-folder <- "results/16-Mar-2023 13.42"
+folder <- "results/24-Mar-2023 11.50"
 flz <- list.files(folder)
 n.lim <- 200
 s <- 0
@@ -71,7 +71,7 @@ reverse <- FALSE
 sim.sel <- FALSE
 add.split <- TRUE
 B <- dim(all.s.list$out[[1]])[1]
-stab <- 2
+stab <- 1
 unstab <- (1:p)[-stab]
 
 par(mfrow = c(2,2))
@@ -171,7 +171,7 @@ for (s in 1:length(flz)){
   all.frac <- apply(is.na(all.s.0), 2:3, mean)
   sd.frac <- apply(all.frac, 2, sd)
   # bds <- sapply(round(avg.frac, 2), function(avg) bound(avg, B, p, 0.1))
-  which.sel <- t(all.frac) >= (avg.frac + 0* sd.frac)
+  which.sel <- t(all.frac) > (avg.frac + 0* sd.frac)
   # which.sel.tau <- t(all.frac) > bds
   # qqplot(apply(!is.na(all.s.list$out[[s]][,2,,1]), 2, mean), apply(!is.na(all.s.list$out[[s]][,1,,1]), 2, mean),
          # xlim = c(0,1), ylim = c(0,1), type = "s")
@@ -183,13 +183,13 @@ for (s in 1:length(flz)){
   abline(0,1, col = "gray", lty= 2)
   
   if(add.split){
-    pv <- apply(1 * is.na(all.s.0), 3, wilc.split)
+    pv <- apply(1 * is.na(all.s.0), 3, fisher.split)
     pis <- sort(unique(c(pv)))
     r1 <- sapply(pis, function(pi) mean(pv[unstab,] <= pi))
     r2 <- sapply(pis, function(pi) mean(pv[stab,] <= pi))
     
     lines(r1, r2, xlim = c(0,1), ylim = c(0,1), type = "s", main = ns[s], col = 2)
-    pi0 <- 0.05
+    pi0 <- 1e-2
     points(mean(pv[unstab,] <= pi0), mean(pv[stab,] <= pi0), pch = 4, col = 2)
   }
 }

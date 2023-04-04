@@ -33,21 +33,21 @@ progress <- function(n, tag) {
 
 opts <- list(progress = progress)
 
-# pot <- function(x, b) sign(x)*abs(x)^b
-# va <- function(b) 2^(b)*gamma(b + 0.5)/sqrt(pi)
-# up <- function(x2) pot((x2 + 1)*sqrt(va(b))/a, 1/b)
-# lo <- function(x2) pot((x2 - 1)*sqrt(va(b))/a, 1/b)
-# fx2 <- function(x2) 0.5 *(pnorm(up(x2)) - pnorm(lo(x2)))
-# Ex <- function(x2) -(dnorm(up(x2)) - dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2)))
+pot <- function(x, b) sign(x)*abs(x)^b
+va <- function(b) 2^(b)*gamma(b + 0.5)/sqrt(pi)
+up <- function(x2) pot((x2 + 1)*sqrt(va(b))/a, 1/b)
+lo <- function(x2) pot((x2 - 1)*sqrt(va(b))/a, 1/b)
+fx2 <- function(x2) 0.5 *(pnorm(up(x2)) - pnorm(lo(x2)))
+Ex1 <- function(x2) -(dnorm(up(x2)) - dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2)))
 # Vx <- function(x2) 1 - (up(x2) * dnorm(up(x2)) - lo(x2) * dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2))) -
 #   ((dnorm(up(x2)) - dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2))))^2
 
-Ex <- function(x1, x2) 0.5 * (x1^2 + x2^2 + 2)
+Ex <- function(x1, x2, x6, x7) 0.5 * (x1^2 + x2^2 + 2) + 2 * (Ex1(x6) + pot(x7, 1.5))
 
 nsim <- 200
 n.vec <- 10^(2:5)
 n.split <- 25
-p <- 3
+p <- 5
 b <- 1.5
 a <- sqrt(1/3)
 
@@ -79,17 +79,23 @@ for (n in n.vec) {
                  x2 <- sqrt(0.5) * (x0 + rnorm(n))
                  x3 <- sqrt(0.5) * (x1 + rnorm(n))
                  x4 <- sqrt(0.5) * (x2 + rnorm(n))
-                 y <- x3^2 + x4^2
-                 dat <- data.frame(y, x0, x1, x2)
+                 x5 <- rnorm(n)
+                 x6 <- a * pot(x5 , b)/sqrt(va(b)) + runif(n, -1, 1)
+                 x7 <- x6 + rnorm(n)
+                 y <- x3^2 + x4^2 + 2 * (x5 + pot(x7, 1.5))
+                 
+                 Eyx <- Ex(x1, x2, x6, x7)
+                 
+                 dat <- data.frame(y, x0, x1, x2, x6, x7)
                  form <- wrapFormula(y ~., data = dat)
                  fi.all <- gam(form, data = dat)
-                 sel.all <- (1:3) %in% 
+                 sel.all <- (1:p) %in% 
                    foci(abs(fi.all$residuals), dat[,-1])$selectedVar$index
-                 sel.all0 <- (1:3) %in% 
-                   foci(abs(y - Ex(x1, x2)), dat[,-1])$selectedVar$index
+                 sel.all0 <- (1:p) %in% 
+                   foci(abs(y - Eyx), dat[,-1])$selectedVar$index
                  
-                 mse <- mean((fi.all$fitted.values - Ex(x1, x2))^2)
-                 rcor <- cor(fi.all$residuals, y - Ex(x1, x2), method = "spearman")
+                 mse <- mean((fi.all$fitted.values - Eyx)^2)
+                 rcor <- cor(fi.all$residuals, y - Eyx, method = "spearman")
                  sel11 <- sel12 <- sel21 <- sel22 <- matrix(NA, n.split, dim(dat)[2] - 1)
                  steps11 <-  matrix(NA, nrow = n.split, ncol = dim(dat)[2] - 1)
                  colnames(steps11) <- colnames(dat)[-1]
@@ -149,7 +155,7 @@ for (n in n.vec) {
   if (save) save(simulation, file = paste("results/", newdir, "/", resname, ".RData", sep = ""))
   print(apply(res.val, 2, mean))
   for (j in 1:p){
-    print(paste(j, ": ", sum(res.sel.in == j, na.rm = TRUE), sep = ""))
+    # print(paste(j, ": ", sum(res.sel.in == j, na.rm = TRUE), sep = ""))
     print(paste(j, ": ", sum(res.sel.out == j, na.rm = TRUE), sep = ""))
   }
 }
