@@ -156,27 +156,21 @@ for (s in 1:length(flz)){
     }
     Bb <- Bb / 2
   }
-  frac.stab <- frac.unstab <- numeric(0)
-  for (j in stab){
-    frac.stab <- c(frac.stab, apply(!is.na(all.s.0[,j,]), 2, mean))
-  }
-  for (j in unstab){
-    frac.unstab <- c(frac.unstab, apply(!is.na(all.s.0[,j,]), 2, mean))
-  }
-  pis <- (0:Bb)/Bb
-  r1 <- sapply(pis, function(pi) mean(frac.unstab <= pi))
-  r2 <- sapply(pis, function(pi) mean(frac.stab <= pi))
-  
+
+  pis <- sort(unique(c((0:Bb)/Bb, pi0)))
+
   avg.frac <- apply(is.na(all.s.0), 3, mean)
   all.frac <- apply(is.na(all.s.0), 2:3, mean)
-  sd.frac <- apply(all.frac, 2, sd)
+  r1 <- sapply(pis, function(pi) mean(all.frac[unstab,] >= pi))
+  r2 <- sapply(pis, function(pi) mean(all.frac[stab,] >= pi))
   # bds <- sapply(round(avg.frac, 2), function(avg) bound(avg, B, p, 0.1))
-  which.sel <- t(all.frac) > (avg.frac + 0* sd.frac)
+  which.sel <- t(all.frac) > (avg.frac)
+  fdr <- sapply(pis, function(pi) mean(apply((1 -all.frac[unstab,]) <= pi, 2, sum) /
+                                         pmax(apply((1 - all.frac)  <= pi, 2, sum), 1)))
+  # r1 <- fdr
   # which.sel.tau <- t(all.frac) > bds
-  # qqplot(apply(!is.na(all.s.list$out[[s]][,2,,1]), 2, mean), apply(!is.na(all.s.list$out[[s]][,1,,1]), 2, mean),
-         # xlim = c(0,1), ylim = c(0,1), type = "s")
-  plot(r1, r2, xlim = c(0,1), ylim = c(0,1), type = "s", main = ns[s])
-  points(mean(frac.unstab <= pi0), mean(frac.stab <= pi0), pch = 4)
+  plot(r1, r2, xlim = c(0,1), ylim = c(0,1), type = "l", main = ns[s])
+  points(r1[pis == pi0], r2[pis == pi0], pch = 4)
   points(mean(is.na(all.s.list$out[[s]][1,unstab,,1])), mean(is.na(all.s.list$out[[s]][1,stab,,1])), pch = 2, col = 4)
   points(mean(which.sel[,unstab]), mean(which.sel[,stab]), col = 3, pch = 3)
   # points(mean(which.sel.tau[,unstab]), mean(which.sel.tau[,stab]), col = 4, pch = 4)
@@ -184,13 +178,14 @@ for (s in 1:length(flz)){
   
   if(add.split){
     pv <- apply(1 * is.na(all.s.0), 3, fisher.split)
-    pis <- sort(unique(c(pv)))
+    pi0 <- 1e-2
+    pis <- sort(unique(c(pv, pi0)))
+    fdr <- sapply(pis, function(pi) mean(apply(pv[unstab,] <= pi, 2, sum) / pmax(apply(pv <= pi, 2, sum), 1)))
     r1 <- sapply(pis, function(pi) mean(pv[unstab,] <= pi))
     r2 <- sapply(pis, function(pi) mean(pv[stab,] <= pi))
-    
-    lines(r1, r2, xlim = c(0,1), ylim = c(0,1), type = "s", main = ns[s], col = 2)
-    pi0 <- 1e-2
-    points(mean(pv[unstab,] <= pi0), mean(pv[stab,] <= pi0), pch = 4, col = 2)
+    # r1 <- fdr
+    lines(r1, r2, xlim = c(0,1), ylim = c(0,1), type = "l", main = ns[s], col = 2)
+    points(r1[pis == pi0], r2[pis == pi0], pch = 4, col = 2)
   }
 }
 
