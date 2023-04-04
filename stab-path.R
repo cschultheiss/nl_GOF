@@ -1,81 +1,91 @@
 require(latex2exp)
 require(modeest)
-folder <- "results/24-Mar-2023 11.50"
+folder <- "results/16-Mar-2023 13.42"
 flz <- list.files(folder)
-n.lim <- 200
-s <- 0
-lims.list <- list()
-all.s.list <- list()
-ns <- numeric(length(flz))
-for (file in flz){
-  s <- s + 1
-  load(paste(folder, "/", file, sep = ""))
-  p <- dim(simulation$steps.in)[2]
-  
-  steps.in <- simulation$steps.in
-  steps.out <- simulation$steps.out
-  
-  sel.in <- simulation$sel.in
-  sel.out <- simulation$sel.out
-  
-  lims <- c(0, unique(sort(c(simulation$steps.in[!is.na(simulation$steps.in)],
-                             simulation$steps.out[!is.na(simulation$steps.out)]))))
-
-  if (length(lims > n.lim)){
-    lims <- seq(0, max(lims), length.out = n.lim)
-  }
-
-  
-  steps.in.sorted <- array(NA, dim(steps.in))
-  steps.out.sorted <- array(NA, dim(steps.in))
-  
-  for (i in 1:dim(steps.in)[1]){
-    for (j in 1:dim(steps.in)[3]){
-      steps.in.sorted[i,,j] <- steps.in[i,sel.in[i,,j],j]
-      steps.out.sorted[i,,j] <- steps.out[i,sel.out[i,,j],j]
+nf <- length(flz)
+analysis <- paste(folder, "/analysis.RData", sep = "")
+if (file.exists(analysis)){
+  nf <- nf - 1
+  load(analysis)
+} else {
+  ns <- numeric(nf)
+  n.lim <- 200
+  s <- 0
+  lims.list <- list()
+  all.s.list <- list()
+  for (file in flz){
+    s <- s + 1
+    load(paste(folder, "/", file, sep = ""))
+    p <- dim(simulation$steps.in)[2]
+    
+    steps.in <- simulation$steps.in
+    steps.out <- simulation$steps.out
+    
+    sel.in <- simulation$sel.in
+    sel.out <- simulation$sel.out
+    
+    lims <- c(0, unique(sort(c(simulation$steps.in[!is.na(simulation$steps.in)],
+                               simulation$steps.out[!is.na(simulation$steps.out)]))))
+    
+    if (length(lims > n.lim)){
+      lims <- seq(0, max(lims), length.out = n.lim)
     }
-  }
-  reset <- function(steps, lim){
-    wi <- which(steps < lim)
-    if(length(wi) > 0){
-      steps[min(wi):length(steps)] <- NA
+    
+    
+    steps.in.sorted <- array(NA, dim(steps.in))
+    steps.out.sorted <- array(NA, dim(steps.in))
+    
+    for (i in 1:dim(steps.in)[1]){
+      for (j in 1:dim(steps.in)[3]){
+        steps.in.sorted[i,,j] <- steps.in[i,sel.in[i,,j],j]
+        steps.out.sorted[i,,j] <- steps.out[i,sel.out[i,,j],j]
+      }
     }
-    return(steps)
-  }
-  
-  all.s.in <- all.s.out <- array(NA, dim = c(dim(steps.in), length(lims)))
-  all.s.in[] <- sapply(lims, function(lim) aperm(apply(steps.in.sorted, c(1,3), reset, lim = lim), c(2,1,3)))
-  all.s.out[] <- sapply(lims, function(lim) aperm(apply(steps.out.sorted, c(1,3), reset, lim = lim), c(2,1,3)))
-  all.s.var.in <- all.s.var.out <- array(NA, dim(all.s.in))
-  for (i in 1:dim(steps.in)[1]){
-    for (j in 1:dim(steps.in)[3]){
-      sel.in.ij <- sel.in[i,,j]
-      sel.in.ij[is.na(sel.in.ij)] <- setdiff(1:p, sel.in.ij)
-      all.s.var.in[i,,j,] <- all.s.in[i, order(sel.in.ij),j,]
-      
-      sel.out.ij <- sel.out[i,,j]
-      sel.out.ij[is.na(sel.out.ij)] <- setdiff(1:p, sel.out.ij)
-      all.s.var.out[i,,j,] <- all.s.out[i, order(sel.out.ij),j,]
+    reset <- function(steps, lim){
+      wi <- which(steps < lim)
+      if(length(wi) > 0){
+        steps[min(wi):length(steps)] <- NA
+      }
+      return(steps)
     }
+    
+    all.s.in <- all.s.out <- array(NA, dim = c(dim(steps.in), length(lims)))
+    all.s.in[] <- sapply(lims, function(lim) aperm(apply(steps.in.sorted, c(1,3), reset, lim = lim), c(2,1,3)))
+    all.s.out[] <- sapply(lims, function(lim) aperm(apply(steps.out.sorted, c(1,3), reset, lim = lim), c(2,1,3)))
+    all.s.var.in <- all.s.var.out <- array(NA, dim(all.s.in))
+    for (i in 1:dim(steps.in)[1]){
+      for (j in 1:dim(steps.in)[3]){
+        sel.in.ij <- sel.in[i,,j]
+        sel.in.ij[is.na(sel.in.ij)] <- setdiff(1:p, sel.in.ij)
+        all.s.var.in[i,,j,] <- all.s.in[i, order(sel.in.ij),j,]
+        
+        sel.out.ij <- sel.out[i,,j]
+        sel.out.ij[is.na(sel.out.ij)] <- setdiff(1:p, sel.out.ij)
+        all.s.var.out[i,,j,] <- all.s.out[i, order(sel.out.ij),j,]
+      }
+    }
+    lims.list[[s]] <- lims
+    all.s.list[["in"]][[s]] <- all.s.var.in
+    all.s.list[["out"]][[s]] <- all.s.var.out
+    ns[s] <- simulation$n
+    
+    rm(all.s.in, all.s.out, all.s.var.in, all.s.var.out, sel.in.ij, sel.out.ij, steps.in.sorted,
+       steps.out.sorted, steps.in, steps.out, sel.in, sel.out, lims)
   }
-  lims.list[[s]] <- lims
-  all.s.list[["in"]][[s]] <- all.s.var.in
-  all.s.list[["out"]][[s]] <- all.s.var.out
-  ns[s] <- simulation$n
-  
-  rm(all.s.in, all.s.out, all.s.var.in, all.s.var.out, sel.in.ij, sel.out.ij, steps.in.sorted,
-     steps.out.sorted, steps.in, steps.out, sel.in, sel.out, lims)
+  save(all.s.list, lims.list, ns, file = analysis)
 }
+
 
 reverse <- FALSE
 sim.sel <- FALSE
 add.split <- TRUE
 B <- dim(all.s.list$out[[1]])[1]
-stab <- 1
+p <- dim(all.s.list$out[[1]])[2]
+stab <- 2
 unstab <- (1:p)[-stab]
 
 par(mfrow = c(2,2))
-for (s in 1:length(flz)){
+for (s in 1:nf){
   lims <- lims.list[[s]]
   add = FALSE
   for (split in c("out", "in")){
@@ -109,7 +119,7 @@ for (s in 1:length(flz)){
 
 # ecdf
 par(mfrow = c(2,2))
-for (s in 1:length(flz)){
+for (s in 1:nf){
   all.s.0 <- all.s.list$out[[s]][,,,1]
   if (sim.sel) {
     if(reverse) {
@@ -142,7 +152,7 @@ bound <- function(theta, B, p, t1){
 
 #ROC
 par(mfrow = c(2,2))
-for (s in 1:length(flz)){
+for (s in 1:nf){
   all.s.0 <- all.s.list$out[[s]][,,,1]
   Bb <- B
   pi0 <- 0.5
@@ -165,7 +175,7 @@ for (s in 1:length(flz)){
   r2 <- sapply(pis, function(pi) mean(all.frac[stab,] >= pi))
   # bds <- sapply(round(avg.frac, 2), function(avg) bound(avg, B, p, 0.1))
   which.sel <- t(all.frac) > (avg.frac)
-  fdr <- sapply(pis, function(pi) mean(apply((1 -all.frac[unstab,]) <= pi, 2, sum) /
+  fdr <- sapply(pis, function(pi) mean(apply(matrix(1 -all.frac[unstab,], nrow = length(unstab)) <= pi, 2, sum) /
                                          pmax(apply((1 - all.frac)  <= pi, 2, sum), 1)))
   # r1 <- fdr
   # which.sel.tau <- t(all.frac) > bds
@@ -180,7 +190,7 @@ for (s in 1:length(flz)){
     pv <- apply(1 * is.na(all.s.0), 3, fisher.split)
     pi0 <- 1e-2
     pis <- sort(unique(c(pv, pi0)))
-    fdr <- sapply(pis, function(pi) mean(apply(pv[unstab,] <= pi, 2, sum) / pmax(apply(pv <= pi, 2, sum), 1)))
+    fdr <- sapply(pis, function(pi) mean(apply(matrix(pv[unstab,], nrow = length(unstab)) <= pi, 2, sum) / pmax(apply(pv <= pi, 2, sum), 1)))
     r1 <- sapply(pis, function(pi) mean(pv[unstab,] <= pi))
     r2 <- sapply(pis, function(pi) mean(pv[stab,] <= pi))
     # r1 <- fdr
@@ -191,7 +201,7 @@ for (s in 1:length(flz)){
 
 #ROC alt
 par(mfrow = c(2,2))
-for (s in 1:length(flz)){
+for (s in 1:nf){
   all.s.0 <- all.s.list$out[[s]][,,,1]
   Bb <- B
   pi0 <- 0.05
