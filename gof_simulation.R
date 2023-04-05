@@ -1,3 +1,4 @@
+rm(list = ls(all = TRUE))
 d <- "/usr/local64.sfs/app/R/R_local/library"
 if(all(d != .libPaths())) .libPaths(c(.libPaths(), d))
 
@@ -8,6 +9,7 @@ require(git2r)
 require(FOCI)
 require(mgcv)
 require(sfsmisc)
+require(dHSIC)
 
 source("multi_spec.R")
 
@@ -71,7 +73,7 @@ for (n in n.vec) {
   registerDoSNOW(cl)
   tic()
   res<-foreach(gu = 1:nsim, .combine = rbind,
-               .packages = c("mgcv", "sfsmisc"), .options.snow = opts) %dorng%{
+               .packages = c("mgcv", "sfsmisc", "dHSIC"), .options.snow = opts) %dorng%{
                  
                  if(all(d != .libPaths())) .libPaths(c(.libPaths(), d))
                   library(FOCI)
@@ -111,7 +113,7 @@ for (n in n.vec) {
   # store output list to matrix
   res.val <- matrix(unlist(res[, "values"]), byrow = TRUE, nrow = nsim)
   colnames(res.val) <- c("mse", "rcor",
-                         paste(rep(c("all0", "all"), each = p), rep(colnames(res[1,"steps.in"][[1]]), 2), sep ="."))
+                         paste(rep(c("all0", "all"), each = p), rep(colnames(res[1,"steps"][[1]]), 2), sep ="."))
   
   res.steps.out <- array(unlist(res[,"steps"]), dim = c(2 * n.split, p, nsim), dimnames = list(NULL,
                                                                                                  colnames(res[1,"steps"][[1]]), NULL))
