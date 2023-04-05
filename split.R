@@ -22,3 +22,10 @@ fisher.split <- function(sels){
                                                   alternative = "less")$p.value)
   pv
 }
+
+bound <- function(theta, B, p, t1){
+  mins <- minD(theta, B/2)
+  fac <- t1 / p
+  ind <- min(which(mins < fac))
+  ind / B
+}
