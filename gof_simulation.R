@@ -73,10 +73,13 @@ for (n in n.vec) {
   registerDoSNOW(cl)
   tic()
   res<-foreach(gu = 1:nsim, .combine = rbind,
-               .packages = c("mgcv", "sfsmisc", "dHSIC"), .options.snow = opts) %dorng%{
+               .packages = c("mgcv", "sfsmisc"), .options.snow = opts) %dorng%{
                  
-                 if(all(d != .libPaths())) .libPaths(c(.libPaths(), d))
-                  library(FOCI)
+                 if(all(d != .libPaths())) .libPaths(c(.libPaths(), d)){
+                   library(FOCI)
+                   library(dHSIC)
+                 }
+                  
                  
                  x0 <- rnorm(n)
                  x1 <- sqrt(0.5) * (x0 + rnorm(n))

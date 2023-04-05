@@ -22,8 +22,15 @@ multi.spec <- function(data, response = "y", B = 25, gamma = NULL, gamma.min = 0
     pred21 <- predict(fi2, newdata = data[ind,])
     pred[ind, i] <- pred21
     pred[-ind, i] <- pred12
-    hs12 <- dhsic.test(data[-ind, res.ind] - pred12, data[-ind, -res.ind], method = "gamma")
-    hs21 <- dhsic.test(data[ind, res.ind] - pred21, data[ind, -res.ind], method = "gamma")
+    
+    if (n /2 > 1e4){
+      hs12 <- dhsic.test((data[-ind, res.ind] - pred12)[1:1e4], data[-ind, -res.ind][1:1e4 ,], method = "gamma")
+      hs21 <- dhsic.test((data[ind, res.ind] - pred21)[1:1e4], data[ind, -res.ind][1:1e4 ,], method = "gamma")
+    } else {
+      hs12 <- dhsic.test(data[-ind, res.ind] - pred12, data[-ind, -res.ind], method = "gamma")
+      hs21 <- dhsic.test(data[ind, res.ind] - pred21, data[ind, -res.ind], method = "gamma")
+    }
+    
     pval[c(i, i + B)] <- c(hs12$p.value, hs21$p.value)
     
     fo12 <- foci(abs(dat[-ind, res.ind] - pred12), dat[-ind, -res.ind])
