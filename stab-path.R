@@ -1,5 +1,7 @@
 require(latex2exp)
 require(modeest)
+source("split.R")
+
 folder <- "results/04-Apr-2023 12.21"
 flz <- list.files(folder)
 nf <- length(flz)
@@ -130,24 +132,11 @@ for (s in 1:nf){
     
   }
   
-  frac.stab <- frac.unstab <- numeric(0)
-  for (j in stab){
-    frac.stab <- c(frac.stab, apply(!is.na(all.s.0[,j,]), 2, mean))
-  }
-  for (j in unstab){
-    frac.unstab <- c(frac.unstab, apply(!is.na(all.s.0[,j,]), 2, mean))
-  }
-    plot.ecdf(frac.stab, xlim = c(0, 1), main = ns[s])
-    plot.ecdf(frac.unstab, col = 2, add= TRUE)
+  all.frac <- apply(!is.na(all.s.0), 2:3, mean)  
+  plot.ecdf(all.frac[stab,], xlim = c(0, 1), main = ns[s])
+  plot.ecdf(all.frac[unstab,], col = 2, add= TRUE)
     # abline(v =0.75)
     # abline(h = 0.5)
-}
-
-bound <- function(theta, B, p, t1){
-  mins <- minD(theta, B/2)
-  fac <- t1 / p
-  ind <- min(which(mins < fac))
-  ind / B
 }
 
 #ROC
@@ -175,8 +164,8 @@ for (s in 1:nf){
   r2 <- sapply(pis, function(pi) mean(all.frac[stab,] >= pi))
   # bds <- sapply(round(avg.frac, 2), function(avg) bound(avg, B, p, 0.1))
   which.sel <- t(all.frac) > (avg.frac)
-  fdr <- sapply(pis, function(pi) mean(apply(matrix(1 -all.frac[unstab,], nrow = length(unstab)) <= pi, 2, sum) /
-                                         pmax(apply((1 - all.frac)  <= pi, 2, sum), 1)))
+  fdr <- sapply(pis, function(pi) mean(apply(matrix(all.frac[unstab,], nrow = length(unstab)) >= pi, 2, sum) /
+                                         pmax(apply(all.frac >= pi, 2, sum), 1)))
   # r1 <- fdr
   # which.sel.tau <- t(all.frac) > bds
   plot(r1, r2, xlim = c(0,1), ylim = c(0,1), type = "l", main = ns[s])
