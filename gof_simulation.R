@@ -75,10 +75,10 @@ for (n in n.vec) {
   res<-foreach(gu = 1:nsim, .combine = rbind,
                .packages = c("mgcv", "sfsmisc"), .options.snow = opts) %dorng%{
                  
-                 if(all(d != .libPaths())) .libPaths(c(.libPaths(), d)){
+                 if(all(d != .libPaths())) .libPaths(c(.libPaths(), d))
                    library(FOCI)
                    library(dHSIC)
-                 }
+                 
                   
                  
                  x0 <- rnorm(n)
