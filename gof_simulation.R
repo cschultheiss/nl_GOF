@@ -9,6 +9,8 @@ require(FOCI)
 require(mgcv)
 require(sfsmisc)
 
+source("multi_spec.R")
+
 commit <- revparse_single(revision = "HEAD")
 print(paste("Run on commit", commit$sha, 'i.e.:', commit$summary))
 
@@ -96,39 +98,11 @@ for (n in n.vec) {
                  
                  mse <- mean((fi.all$fitted.values - Eyx)^2)
                  rcor <- cor(fi.all$residuals, y - Eyx, method = "spearman")
-                 sel11 <- sel12 <- sel21 <- sel22 <- matrix(NA, n.split, dim(dat)[2] - 1)
-                 steps11 <-  matrix(NA, nrow = n.split, ncol = dim(dat)[2] - 1)
-                 colnames(steps11) <- colnames(dat)[-1]
-                 steps12 <- steps21 <- steps22 <- steps11
-                 for(i in 1:n.split){
-                   ind <- sample(n, n/2)
-                   fi1 <- gam(form, data = dat[ind,])
-                   fi2 <- gam(form, data = dat[-ind,])
-                   pred11 <- predict(fi1, newdata = dat[ind,])
-                   pred12 <- predict(fi1, newdata = dat[-ind,])
-                   pred21 <- predict(fi2, newdata = dat[ind,])
-                   pred22 <- predict(fi2, newdata = dat[-ind,])
-                   fo11 <- foci(abs(y[ind] - pred11), dat[ind, -1])
-                   fo12 <- foci(abs(y[-ind] - pred12), dat[-ind, -1])
-                   fo21 <- foci(abs(y[ind] - pred21), dat[ind, -1])
-                   fo22 <- foci(abs(y[-ind] - pred22), dat[-ind, -1])
-                   steps11[i, fo11$selectedVar$index] <- diff(c(0, fo11$stepT))
-                   steps12[i, fo12$selectedVar$index] <- diff(c(0, fo12$stepT))
-                   steps21[i, fo21$selectedVar$index] <- diff(c(0, fo21$stepT))
-                   steps22[i, fo22$selectedVar$index] <- diff(c(0, fo22$stepT))
-                   sel11[i,] <- c(fo11$selectedVar$index, rep(NA, dim(dat)[2] - 1 - length(fo11$selectedVar$index)))
-                   sel12[i,] <- c(fo12$selectedVar$index, rep(NA, dim(dat)[2] - 1 - length(fo12$selectedVar$index)))
-                   sel21[i,] <- c(fo21$selectedVar$index, rep(NA, dim(dat)[2] - 1 - length(fo21$selectedVar$index)))
-                   sel22[i,] <- c(fo22$selectedVar$index, rep(NA, dim(dat)[2] - 1 - length(fo22$selectedVar$index)))
-                 }
                  
-                 out <- list()
+                 out <- multi.spec(dat, B = n.split, return.predictor = FALSE)
+
                  out$values <- c(mse, rcor, sel.all0, sel.all)
-                 out$steps.in <- rbind(steps11, steps22)
-                 out$steps.out <- rbind(steps21, steps12)
-                 out$sel.in <- rbind(sel11, sel22)
-                 out$sel.out <- rbind(sel21, sel12)
-                 
+
                  out
                }
   toc()
@@ -139,20 +113,23 @@ for (n in n.vec) {
   colnames(res.val) <- c("mse", "rcor",
                          paste(rep(c("all0", "all"), each = p), rep(colnames(res[1,"steps.in"][[1]]), 2), sep ="."))
   
-  res.steps.in <- array(unlist(res[,"steps.in"]), dim = c(2 * n.split, p, nsim), dimnames = list(NULL,
-                                                                                 colnames(res[1,"steps.in"][[1]]), NULL))
-  res.steps.out <- array(unlist(res[,"steps.out"]), dim = c(2 * n.split, p, nsim), dimnames = list(NULL,
-                                                                                                 colnames(res[1,"steps.out"][[1]]), NULL))
-  res.sel.in <- array(unlist(res[,"sel.in"]), dim = c(2 * n.split, p, nsim))
-  res.sel.out <- array(unlist(res[,"sel.out"]), dim = c(2 * n.split, p, nsim))
+  res.steps.out <- array(unlist(res[,"steps"]), dim = c(2 * n.split, p, nsim), dimnames = list(NULL,
+                                                                                                 colnames(res[1,"steps"][[1]]), NULL))
+  res.sel.out <- array(unlist(res[,"sel"]), dim = c(2 * n.split, p, nsim))
+  
+  res.pval <- matrix(unlist(res[, "pval"]), byrow = TRUE, nrow = nsim)
+  
+  res.pval.corr <- unlist(res[,"pval.corr"])
   
   # store output quantities, sample size, random seed, commit
-  simulation <- list(all = res.val, steps.in = res.steps.in, steps.out = res.steps.out, sel.in = res.sel.in,
-                     sel.out = res.sel.out, n = n, r.seed = attr(res, "rng"), "commit" = commit)
+  simulation <- list(all = res.val, steps.out = res.steps.out, sel.out = res.sel.out,
+                     pval = res.pval, pval.corr = res.pval.corr,
+                     n = n, r.seed = attr(res, "rng"), "commit" = commit)
   # create unique filename based on sample size and time
   resname <- paste0("results n=", n, " ", format(Sys.time(), "%d-%b-%Y %H.%M"))
   # save the file to the folder
   if (save) save(simulation, file = paste("results/", newdir, "/", resname, ".RData", sep = ""))
+  print(median(res.pval.corr))
   print(apply(res.val, 2, mean))
   for (j in 1:p){
     # print(paste(j, ": ", sum(res.sel.in == j, na.rm = TRUE), sep = ""))
