@@ -2,10 +2,11 @@ require(latex2exp)
 require(modeest)
 source("split.R")
 
-folder <- "results/04-Apr-2023 12.21"
+folder <- "results/05-Apr-2023 19.07"
 flz <- list.files(folder)
 nf <- length(flz)
 analysis <- paste(folder, "/analysis.RData", sep = "")
+test.in <- FALSE
 if (file.exists(analysis)){
   nf <- nf - 1
   load(analysis)
@@ -18,7 +19,7 @@ if (file.exists(analysis)){
   for (file in flz){
     s <- s + 1
     load(paste(folder, "/", file, sep = ""))
-    p <- dim(simulation$steps.in)[2]
+    p <- dim(simulation$steps.out)[2]
     
     steps.in <- simulation$steps.in
     steps.out <- simulation$steps.out
@@ -34,12 +35,12 @@ if (file.exists(analysis)){
     }
     
     
-    steps.in.sorted <- array(NA, dim(steps.in))
-    steps.out.sorted <- array(NA, dim(steps.in))
+    steps.in.sorted <- array(NA, dim(steps.out))
+    steps.out.sorted <- array(NA, dim(steps.out))
     
-    for (i in 1:dim(steps.in)[1]){
-      for (j in 1:dim(steps.in)[3]){
-        steps.in.sorted[i,,j] <- steps.in[i,sel.in[i,,j],j]
+    for (i in 1:dim(steps.out)[1]){
+      for (j in 1:dim(steps.out)[3]){
+        if(test.in) steps.in.sorted[i,,j] <- steps.in[i,sel.in[i,,j],j]
         steps.out.sorted[i,,j] <- steps.out[i,sel.out[i,,j],j]
       }
     }
@@ -51,15 +52,17 @@ if (file.exists(analysis)){
       return(steps)
     }
     
-    all.s.in <- all.s.out <- array(NA, dim = c(dim(steps.in), length(lims)))
-    all.s.in[] <- sapply(lims, function(lim) aperm(apply(steps.in.sorted, c(1,3), reset, lim = lim), c(2,1,3)))
+    all.s.in <- all.s.out <- array(NA, dim = c(dim(steps.out), length(lims)))
+    if(test.in) all.s.in[] <- sapply(lims, function(lim) aperm(apply(steps.in.sorted, c(1,3), reset, lim = lim), c(2,1,3)))
     all.s.out[] <- sapply(lims, function(lim) aperm(apply(steps.out.sorted, c(1,3), reset, lim = lim), c(2,1,3)))
     all.s.var.in <- all.s.var.out <- array(NA, dim(all.s.in))
-    for (i in 1:dim(steps.in)[1]){
-      for (j in 1:dim(steps.in)[3]){
-        sel.in.ij <- sel.in[i,,j]
-        sel.in.ij[is.na(sel.in.ij)] <- setdiff(1:p, sel.in.ij)
-        all.s.var.in[i,,j,] <- all.s.in[i, order(sel.in.ij),j,]
+    for (i in 1:dim(steps.out)[1]){
+      for (j in 1:dim(steps.out)[3]){
+        if(test.in) {
+          sel.in.ij <- sel.in[i,,j]
+          sel.in.ij[is.na(sel.in.ij)] <- setdiff(1:p, sel.in.ij)
+          all.s.var.in[i,,j,] <- all.s.in[i, order(sel.in.ij),j,]
+        }
         
         sel.out.ij <- sel.out[i,,j]
         sel.out.ij[is.na(sel.out.ij)] <- setdiff(1:p, sel.out.ij)
@@ -71,8 +74,9 @@ if (file.exists(analysis)){
     all.s.list[["out"]][[s]] <- all.s.var.out
     ns[s] <- simulation$n
     
-    rm(all.s.in, all.s.out, all.s.var.in, all.s.var.out, sel.in.ij, sel.out.ij, steps.in.sorted,
+    rm(all.s.in, all.s.out, all.s.var.in, all.s.var.out, sel.out.ij, steps.in.sorted,
        steps.out.sorted, steps.in, steps.out, sel.in, sel.out, lims)
+    if(test.in) rm(sel.in.ij)
   }
   save(all.s.list, lims.list, ns, file = analysis)
 }
@@ -217,6 +221,13 @@ for (s in 1:nf){
   points(mean(is.na(all.s.list$out[[s]][1,unstab,,1])), mean(is.na(all.s.list$out[[s]][1,stab,,1])), pch = 2, col = 2)
   # points(mean(which.sel.tau[,unstab]), mean(which.sel.tau[,stab]), col = 4, pch = 4)
   abline(0,1, col = "gray", lty= 2)
+}
+
+par(mfrow = c(2,2))
+for (file in flz){
+  load(paste(folder, "/", file, sep = ""))
+  plot.ecdf(simulation$pval, xlim = c(0,1))
+  plot.ecdf(simulation$pval.corr, col = 2, add = TRUE)
 }
 
 # par(mfrow = c(2,2))
