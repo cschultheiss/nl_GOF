@@ -39,19 +39,19 @@ opts <- list(progress = progress)
 
 pot <- function(x, b) sign(x)*abs(x)^b
 va <- function(b) 2^(b)*gamma(b + 0.5)/sqrt(pi)
-up <- function(x2) pot((x2 + 1)*sqrt(va(b))/a, 1/b)
-lo <- function(x2) pot((x2 - 1)*sqrt(va(b))/a, 1/b)
-fx2 <- function(x2) 0.5 *(pnorm(up(x2)) - pnorm(lo(x2)))
-Ex1 <- function(x2) -(dnorm(up(x2)) - dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2)))
+# up <- function(x2) pot((x2 + 1)*sqrt(va(b))/a, 1/b)
+# lo <- function(x2) pot((x2 - 1)*sqrt(va(b))/a, 1/b)
+# fx2 <- function(x2) 0.5 *(pnorm(up(x2)) - pnorm(lo(x2)))
+# Ex1 <- function(x2) -(dnorm(up(x2)) - dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2)))
 # Vx <- function(x2) 1 - (up(x2) * dnorm(up(x2)) - lo(x2) * dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2))) -
 #   ((dnorm(up(x2)) - dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2))))^2
 
-Ex <- function(x1, x2, x6, x7) 0.5 * (x1^2 + x2^2 + 2) + 2 * (Ex1(x6) + pot(x7, 1.5))
+# Ex <- function(x1, x2, x6, x7) 0.5 * (x1^2 + x2^2 + 2) + 2 * (Ex1(x6) + pot(x7, 1.5))
 
 nsim <- 200
 n.vec <- 10^(2:5)
 n.split <- 25
-p <- 5
+p <- 4
 b <- 1.5
 a <- sqrt(1/3)
 
@@ -89,11 +89,13 @@ for (n in n.vec) {
                  x5 <- rnorm(n)
                  x6 <- a * pot(x5 , b)/sqrt(va(b)) + runif(n, -1, 1)
                  x7 <- x6 + rnorm(n)
-                 y <- x3^2 + x4^2 + 2 * (x5 + pot(x7, 1.5))
+                 Eyx <- x3^2 + x4^2 + 2 * (x5 + pot(x7, 1.5))
                  
-                 Eyx <- Ex(x1, x2, x6, x7)
+                 y <- Eyx + rnorm(n, sd = 4)
                  
-                 dat <- data.frame(y, x0, x1, x2, x6, x7)
+                 
+                 
+                 dat <- data.frame(y, x3, x4, x5, x7)
                  form <- wrapFormula(y ~., data = dat)
                  fi.all <- gam(form, data = dat)
                  sel.all <- (1:p) %in% 
