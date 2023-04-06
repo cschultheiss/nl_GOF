@@ -7,6 +7,7 @@ flz <- list.files(folder)
 nf <- length(flz)
 analysis <- paste(folder, "/analysis.RData", sep = "")
 test.in <- FALSE
+get.pval <- TRUE
 if (file.exists(analysis)){
   nf <- nf - 1
   load(analysis)
@@ -16,10 +17,13 @@ if (file.exists(analysis)){
   s <- 0
   lims.list <- list()
   all.s.list <- list()
+  pval.list <- list()
   for (file in flz){
     s <- s + 1
     load(paste(folder, "/", file, sep = ""))
     p <- dim(simulation$steps.out)[2]
+    
+    if(get.pval) pval.list[[s]] <- simulation$pval.corr
     
     steps.in <- simulation$steps.in
     steps.out <- simulation$steps.out
@@ -78,7 +82,12 @@ if (file.exists(analysis)){
        steps.out.sorted, steps.in, steps.out, sel.in, sel.out, lims)
     if(test.in) rm(sel.in.ij)
   }
-  save(all.s.list, lims.list, ns, file = analysis)
+  if(get.pval){
+    save(all.s.list, lims.list, ns, pval.list, file = analysis)
+  } else {
+    save(all.s.list, lims.list, ns, file = analysis)
+  }
+  
 }
 
 
