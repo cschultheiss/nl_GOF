@@ -156,6 +156,13 @@ for (s in 1:nf){
 par(mfrow = c(2,2))
 for (s in 1:nf){
   all.s.0 <- all.s.list$out[[s]][,,,1]
+  if (get.pval){
+    pval.lim <- 0.05
+    pval <- pval.list[[s]]
+    glob <- which(pval > pval.lim)
+  }
+    
+  
   Bb <- B
   pi0 <- 0.5
   if (sim.sel) {
@@ -173,6 +180,7 @@ for (s in 1:nf){
 
   avg.frac <- apply(is.na(all.s.0), 3, mean)
   all.frac <- apply(is.na(all.s.0), 2:3, mean)
+  if (get.pval) all.frac[, glob] <- 1
   r1 <- sapply(pis, function(pi) mean(all.frac[unstab,] >= pi))
   r2 <- sapply(pis, function(pi) mean(all.frac[stab,] >= pi))
   # bds <- sapply(round(avg.frac, 2), function(avg) bound(avg, B, p, 0.1))
@@ -192,6 +200,7 @@ for (s in 1:nf){
     pv <- apply(1 * is.na(all.s.0), 3, fisher.split)
     pi0 <- 1e-2
     pis <- sort(unique(c(pv, pi0)))
+    if(get.pval) pv[, glob] <- 0
     fdr <- sapply(pis, function(pi) mean(apply(matrix(pv[unstab,], nrow = length(unstab)) <= pi, 2, sum) / pmax(apply(pv <= pi, 2, sum), 1)))
     r1 <- sapply(pis, function(pi) mean(pv[unstab,] <= pi))
     r2 <- sapply(pis, function(pi) mean(pv[stab,] <= pi))
