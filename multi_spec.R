@@ -9,9 +9,9 @@ multi.spec <- function(data, response = "y", B = 25, gamma = NULL, gamma.min = 0
   res.ind <- which(colnames(data) == response)
   pval <- numeric(2 * B)
   pred <- matrix(0, n, B)
-  sel12 <- sel21 <- matrix(NA, B, dim(dat)[2] - 1)
-  steps12 <-  matrix(NA, nrow = B, ncol = dim(dat)[2] - 1)
-  colnames(steps12) <- colnames(dat)[-1]
+  sel12 <- sel21 <- matrix(NA, B, dim(data)[2] - 1)
+  steps12 <-  matrix(NA, nrow = B, ncol = dim(data)[2] - 1)
+  colnames(steps12) <- colnames(data)[-1]
   steps21 <- steps12
   for (i in 1:B){
     cat((paste(i, " ")))
@@ -33,12 +33,12 @@ multi.spec <- function(data, response = "y", B = 25, gamma = NULL, gamma.min = 0
     
     pval[c(i, i + B)] <- c(hs12$p.value, hs21$p.value)
     
-    fo12 <- foci(abs(dat[-ind, res.ind] - pred12), dat[-ind, -res.ind])
-    fo21 <- foci(abs(dat[ind, res.ind] - pred21), dat[ind, -res.ind])
+    fo12 <- foci(abs(data[-ind, res.ind] - pred12), data[-ind, -res.ind])
+    fo21 <- foci(abs(data[ind, res.ind] - pred21), data[ind, -res.ind])
     steps12[i, fo12$selectedVar$index] <- diff(c(0, fo12$stepT))
     steps21[i, fo21$selectedVar$index] <- diff(c(0, fo21$stepT))
-    sel12[i,] <- c(fo12$selectedVar$index, rep(NA, dim(dat)[2] - 1 - length(fo12$selectedVar$index)))
-    sel21[i,] <- c(fo21$selectedVar$index, rep(NA, dim(dat)[2] - 1 - length(fo21$selectedVar$index)))
+    sel12[i,] <- c(fo12$selectedVar$index, rep(NA, dim(data)[2] - 1 - length(fo12$selectedVar$index)))
+    sel21[i,] <- c(fo21$selectedVar$index, rep(NA, dim(data)[2] - 1 - length(fo21$selectedVar$index)))
   }
   pval
   quant.gamma <- quantile(pval, gamma, type = 1)/gamma
