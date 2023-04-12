@@ -103,7 +103,9 @@ par(mfrow = c(2,2))
 for (s in 1:nf){
   lims <- lims.list[[s]]
   add = FALSE
-  for (split in c("out", "in")){
+  splits <- "out"
+  if (test.in) splits <- c("out", "in")
+  for (split in splits){
     all.s.var <- all.s.list[[split]][[s]]
     if (sim.sel) {
       if (reverse){
@@ -147,7 +149,8 @@ for (s in 1:nf){
   
   all.frac <- apply(!is.na(all.s.0), 2:3, mean)  
   plot.ecdf(all.frac[stab,], xlim = c(0, 1), main = ns[s])
-  plot.ecdf(all.frac[unstab,], col = 2, add= TRUE)
+  if (length(unstab) > 0)
+    plot.ecdf(all.frac[unstab,], col = 2, add= TRUE)
     # abline(v =0.75)
     # abline(h = 0.5)
 }
@@ -183,8 +186,12 @@ for (s in 1:nf){
   if (get.pval) all.frac[, glob] <- 1
   r1 <- sapply(pis, function(pi) mean(all.frac[unstab,] >= pi))
   r2 <- sapply(pis, function(pi) mean(all.frac[stab,] >= pi))
+  if(length(unstab) < 1)
+    cat("Found ", 100 * r2[pis == pi0], "% of the stable variables with the 50 % requirement \n", sep ="")
   # bds <- sapply(round(avg.frac, 2), function(avg) bound(avg, B, p, 0.1))
   which.sel <- t(all.frac) > (avg.frac)
+  if(length(unstab) < 1)
+    cat("Found ", 100 * mean(which.sel), "% of the stable variables by comparing to the mean \n", sep ="")
   fdr <- sapply(pis, function(pi) mean(apply(matrix(all.frac[unstab,], nrow = length(unstab)) >= pi, 2, sum) /
                                          pmax(apply(all.frac >= pi, 2, sum), 1)))
   # r1 <- fdr
@@ -201,6 +208,8 @@ for (s in 1:nf){
     pi0 <- 1e-2
     pis <- sort(unique(c(pv, pi0)))
     if(get.pval) pv[, glob] <- 0
+    if(length(unstab) < 1)
+      cat("Found ", 100 * mean(pv <= pi0), "% of the stable variables with the splitting test \n", sep ="")
     fdr <- sapply(pis, function(pi) mean(apply(matrix(pv[unstab,], nrow = length(unstab)) <= pi, 2, sum) / pmax(apply(pv <= pi, 2, sum), 1)))
     r1 <- sapply(pis, function(pi) mean(pv[unstab,] <= pi))
     r2 <- sapply(pis, function(pi) mean(pv[stab,] <= pi))
@@ -243,9 +252,11 @@ for (s in 1:nf){
 
 par(mfrow = c(2,2))
 for (file in flz){
-  load(paste(folder, "/", file, sep = ""))
-  plot.ecdf(simulation$pval, xlim = c(0,1))
-  plot.ecdf(simulation$pval.corr, col = 2, add = TRUE)
+  if(grepl("results", file)){
+    load(paste(folder, "/", file, sep = ""))
+    plot.ecdf(simulation$pval, xlim = c(0,1))
+    plot.ecdf(simulation$pval.corr, col = 2, add = TRUE)
+  }
 }
 
 # par(mfrow = c(2,2))
