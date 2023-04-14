@@ -254,7 +254,7 @@ par(mfrow = c(2,2))
 for (file in flz){
   if(grepl("results", file)){
     load(paste(folder, "/", file, sep = ""))
-    plot.ecdf(simulation$pval, xlim = c(0,1))
+    plot.ecdf(simulation$pval, xlim = c(0,1), main = paste("10^", log10(simulation$n), sep = ""))
     plot.ecdf(simulation$pval.corr, col = 2, add = TRUE)
   }
 }

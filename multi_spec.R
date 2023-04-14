@@ -11,7 +11,7 @@ multi.spec <- function(data, response = "y", B = 25, gamma = NULL, gamma.min = 0
   pred <- matrix(0, n, B)
   sel12 <- sel21 <- matrix(NA, B, dim(data)[2] - 1)
   steps12 <-  matrix(NA, nrow = B, ncol = dim(data)[2] - 1)
-  colnames(steps12) <- colnames(data)[-1]
+  colnames(steps12) <- colnames(data)[-res.ind]
   steps21 <- steps12
   for (i in 1:B){
     cat((paste(i, " ")))
