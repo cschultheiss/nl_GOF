@@ -1,8 +1,10 @@
 require(latex2exp)
 require(modeest)
+require(scales)
 source("split.R")
 
 folder <- "results/05-Apr-2023 19.07"
+savelfolder <- "Figures/two-branch"
 flz <- list.files(folder)
 nf <- length(flz)
 analysis <- paste(folder, "/analysis.RData", sep = "")
@@ -220,11 +222,21 @@ for (s in 1:nf){
 }
 
 #ROC alt
-par(mfrow = c(2,2))
+png(paste(savefolder, "/ROC+ECDF.png", sep = ""), width = 2400,
+    height = 1200, res = 300)
+par(mfrow = c(1, 2))
+cols <- ltys <-  1:4
+pchs <- c(0:2, 6)
 for (s in 1:nf){
   all.s.0 <- all.s.list$out[[s]][,,,1]
   Bb <- B
-  pi0 <- 0.05
+  pi0 <- 1e-2
+  
+  if (get.pval){
+    pval.lim <- 0.05
+    pval <- pval.list[[s]]
+    glob <- which(pval > pval.lim)
+  }
   if (sim.sel) {
     if(reverse) {
       all.s.0 <- pmax(all.s.0[1:(B/2),,] , all.s.0[(B/2 + 1):B,,], na.rm = TRUE)
@@ -236,28 +248,60 @@ for (s in 1:nf){
     Bb <- Bb / 2
   }
 
-  pv <- apply(1 * is.na(all.s.0), 3, wilc.split)
-  
+  pv <- apply(1 * is.na(all.s.0), 3, fisher.split)
+  if(get.pval) pv[, glob] <- 0
   pis <- sort(unique(c(pv)))
   
   r1 <- sapply(pis, function(pi) mean(pv[unstab,] <= pi))
   r2 <- sapply(pis, function(pi) mean(pv[stab,] <= pi))
   
-  plot(r1, r2, xlim = c(0,1), ylim = c(0,1), type = "s", main = ns[s])
-  points(mean(pv[unstab,] <= pi0), mean(pv[stab,] <= pi0), pch = 4)
-  points(mean(is.na(all.s.list$out[[s]][1,unstab,,1])), mean(is.na(all.s.list$out[[s]][1,stab,,1])), pch = 2, col = 2)
+  if (s == 1) {
+    plot(r1, r2, xlim = c(0,1), ylim = c(0,1), type = "l", col = cols[s], lty = ltys[s],
+         xlab = "False positive rate", ylab = "True positive rate")
+  } else {
+    points(r1, r2, xlim = c(0,1), ylim = c(0,1), type = "l", col = cols[s], lty = ltys[s])
+  }
+  
+  points(mean(pv[unstab,] <= pi0), mean(pv[stab,] <= pi0), pch = 4, col = cols[s])
+  # points(mean(is.na(all.s.list$out[[s]][1,unstab,,1])), mean(is.na(all.s.list$out[[s]][1,stab,,1])), pch = 2, col = 2)
+  points(mean(is.na(all.s.list$out[[s]][,unstab,,1])), mean(is.na(all.s.list$out[[s]][,stab,,1])), pch = pchs[s], col = cols[s])
   # points(mean(which.sel.tau[,unstab]), mean(which.sel.tau[,stab]), col = 4, pch = 4)
   abline(0,1, col = "gray", lty= 2)
+  
+  labels <- eval(parse(text = paste("c(", paste("TeX('$n=10^", log10(ns), "$')", sep = "", collapse = ","), ")")))
+  legend('bottomright', legend = labels, col = cols, lty = ltys, pch = pchs)
 }
 
-par(mfrow = c(2,2))
+# par(mfrow = c(1,1))
+cols <- 1:4
+ltys <- 1:4
+s <- 0
+ns.p <- numeric(0)
 for (file in flz){
   if(grepl("results", file)){
+    s <- s + 1
     load(paste(folder, "/", file, sep = ""))
-    plot.ecdf(simulation$pval, xlim = c(0,1), main = paste("10^", log10(simulation$n), sep = ""))
-    plot.ecdf(simulation$pval.corr, col = 2, add = TRUE)
+    if(max(simulation$pval) < 1e-5) next()
+    ns.p <- c(ns.p, simulation$n)
+    np <- prod(dim(simulation$pval))
+    npc <- length(simulation$pval.corr)
+    if (simulation$n == min(ns)){
+      plot(c(sort(simulation$pval), 1), (1:(np + 1))/(np + 1), type = "l", xlim = c(0, 1),
+           col = cols[s], lty = ltys[s], xlab = "p", ylab = "Fn(p)")
+    } else {
+      lines(c(sort(simulation$pval), 1), (1:(np + 1))/(np + 1), col = cols[s], lty = ltys[s])
+    }
+    
+    lines(c(sort(simulation$pval.corr), 1), (1:(npc + 1))/(npc + 1), col = cols[s], lty = ltys[s])
+    points(c(sort(simulation$pval.corr), 1), (1:(npc + 1))/(npc + 1), col = alpha(cols[s], 0.2))
+    # plot.ecdf(simulation$pval, xlim = c(0,1), main = paste("10^", log10(simulation$n), sep = ""))
+    # plot.ecdf(simulation$pval.corr, col = 2, add = TRUE)
   }
 }
+labels <- eval(parse(text = paste("c(", paste("TeX('$n=10^", log10(ns.p), "$')", sep = "", collapse = ","), ")")))
+legend('bottomright', legend = labels, col = cols, lty = ltys)
+
+dev.off()
 
 # par(mfrow = c(2,2))
 # for (file in flz){
