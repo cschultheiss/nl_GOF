@@ -313,6 +313,18 @@ for (file in flz){
 labels <- eval(parse(text = paste("c(", paste("TeX('$n=10^", log10(ns.p), "$')", sep = "", collapse = ","), ")")))
 legend('bottomright', legend = labels, col = cols, lty = ltys)
 
+
+s <- 0
+mses <- list()
+rcor <- list()
+for (file in flz){
+  if(grepl("results", file)){
+    s <- s + 1
+    load(paste(folder, "/", file, sep = ""))
+    mses[[s]] <- simulation$all[,1]
+    rcor[[s]] <- simulation$all[,2]
+  }
+}
 # dev.off()
 
 # par(mfrow = c(2,2))
