@@ -4,7 +4,7 @@ require(scales)
 source("split.R")
 
 folder <- "results/05-Apr-2023 19.07"
-savelfolder <- "Figures/two-branch"
+savefolder <- "Figures/two-branch"
 flz <- list.files(folder)
 nf <- length(flz)
 analysis <- paste(folder, "/analysis.RData", sep = "")
@@ -223,7 +223,7 @@ for (s in 1:nf){
 
 #ROC alt
 # png(paste(savefolder, "/ROC+ECDF.png", sep = ""), width = 2400,
-    # height = 1200, res = 300)
+# height = 1200, res = 300)
 par(mfrow = c(1, 2))
 cols <- ltys <-  1:4
 pchs <- c(0:2, 6)
