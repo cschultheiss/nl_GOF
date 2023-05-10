@@ -222,8 +222,8 @@ for (s in 1:nf){
 }
 
 #ROC alt
-png(paste(savefolder, "/ROC+ECDF.png", sep = ""), width = 2400,
-    height = 1200, res = 300)
+# png(paste(savefolder, "/ROC+ECDF.png", sep = ""), width = 2400,
+    # height = 1200, res = 300)
 par(mfrow = c(1, 2))
 cols <- ltys <-  1:4
 pchs <- c(0:2, 6)
@@ -236,6 +236,8 @@ for (s in 1:nf){
     pval.lim <- 0.05
     pval <- pval.list[[s]]
     glob <- which(pval > pval.lim)
+    load(paste(folder, "/", flz[s+1], sep = ""))
+    glob.s <- t(simulation$pval[,c((B/2 + 1) : B, 1 : (B/2))]) > pval.lim
   }
   if (sim.sel) {
     if(reverse) {
@@ -264,7 +266,17 @@ for (s in 1:nf){
   
   points(mean(pv[unstab,] <= pi0), mean(pv[stab,] <= pi0), pch = 4, col = cols[s])
   # points(mean(is.na(all.s.list$out[[s]][1,unstab,,1])), mean(is.na(all.s.list$out[[s]][1,stab,,1])), pch = 2, col = 2)
-  points(mean(is.na(all.s.list$out[[s]][,unstab,,1])), mean(is.na(all.s.list$out[[s]][,stab,,1])), pch = pchs[s], col = cols[s])
+  t1.mat <- is.na(all.s.list$out[[s]][,unstab,,1])
+  p.mat <- is.na(all.s.list$out[[s]][,stab,,1])
+  if (get.pval){
+    t1.mat <- aperm(t1.mat, c(1, 3, 2))
+    p.mat <- aperm(p.mat, c(1, 3, 2))
+    t1.mat <- pmax(t1.mat, glob.s)
+    p.mat <- pmax(p.mat, glob.s)
+  }
+
+
+  points(mean(t1.mat), mean(p.mat), pch = pchs[s], col = cols[s])
   # points(mean(which.sel.tau[,unstab]), mean(which.sel.tau[,stab]), col = 4, pch = 4)
   abline(0,1, col = "gray", lty= 2)
   
@@ -301,7 +313,7 @@ for (file in flz){
 labels <- eval(parse(text = paste("c(", paste("TeX('$n=10^", log10(ns.p), "$')", sep = "", collapse = ","), ")")))
 legend('bottomright', legend = labels, col = cols, lty = ltys)
 
-dev.off()
+# dev.off()
 
 # par(mfrow = c(2,2))
 # for (file in flz){
