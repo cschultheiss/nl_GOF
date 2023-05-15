@@ -91,7 +91,7 @@ for (n in n.vec) {
                  x7 <- x6 + rnorm(n)
                  Eyx <- x3^2 + x4^2 + 2 * (x5 + pot(x7, 1.5))
                  
-                 y <- Eyx + rnorm(n, sd = 4)
+                 y <- Eyx + rnorm(n, sd = 1)
                  
                  
                  
