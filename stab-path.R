@@ -222,9 +222,12 @@ for (s in 1:nf){
 }
 
 #ROC alt
-# png(paste(savefolder, "/ROC+ECDF.png", sep = ""), width = 2400,
-# height = 1200, res = 300)
-par(mfrow = c(1, 2))
+png(paste(savefolder, "/ROC+ECDF+box.png", sep = ""), width = 3600,
+height = 1200, res = 300)
+par(mfrow = c(1, 3))
+exp.text <- 1.5
+exp.points <- 1.5
+exp.lines <- 1.5
 cols <- ltys <-  1:4
 pchs <- c(0:2, 6)
 for (s in 1:nf){
@@ -259,12 +262,12 @@ for (s in 1:nf){
   
   if (s == 1) {
     plot(r1, r2, xlim = c(0,1), ylim = c(0,1), type = "l", col = cols[s], lty = ltys[s],
-         xlab = "False positive rate", ylab = "True positive rate")
+         xlab = "False positive rate", ylab = "True positive rate", cex.lab = exp.text, lwd = exp.lines)
   } else {
-    points(r1, r2, xlim = c(0,1), ylim = c(0,1), type = "l", col = cols[s], lty = ltys[s])
+    points(r1, r2, xlim = c(0,1), ylim = c(0,1), type = "l", col = cols[s], lty = ltys[s], lwd = exp.lines)
   }
   
-  points(mean(pv[unstab,] <= pi0), mean(pv[stab,] <= pi0), pch = 4, col = cols[s])
+  points(mean(pv[unstab,] <= pi0), mean(pv[stab,] <= pi0), pch = 4, col = cols[s], cex = exp.points)
   # points(mean(is.na(all.s.list$out[[s]][1,unstab,,1])), mean(is.na(all.s.list$out[[s]][1,stab,,1])), pch = 2, col = 2)
   t1.mat <- is.na(all.s.list$out[[s]][,unstab,,1])
   p.mat <- is.na(all.s.list$out[[s]][,stab,,1])
@@ -276,12 +279,12 @@ for (s in 1:nf){
   }
 
 
-  points(mean(t1.mat), mean(p.mat), pch = pchs[s], col = cols[s])
+  points(mean(t1.mat), mean(p.mat), pch = pchs[s], col = cols[s], cex = exp.points)
   # points(mean(which.sel.tau[,unstab]), mean(which.sel.tau[,stab]), col = 4, pch = 4)
   abline(0,1, col = "gray", lty= 2)
   
   labels <- eval(parse(text = paste("c(", paste("TeX('$n=10^", log10(ns), "$')", sep = "", collapse = ","), ")")))
-  legend('bottomright', legend = labels, col = cols, lty = ltys, pch = pchs)
+  legend('bottomright', legend = labels, col = cols, lty = ltys, pch = pchs, cex = exp.text, pt.cex = 1, lwd = exp.lines)
 }
 
 # par(mfrow = c(1,1))
@@ -299,21 +302,22 @@ for (file in flz){
     npc <- length(simulation$pval.corr)
     if (simulation$n == min(ns)){
       plot(c(sort(simulation$pval), 1), (1:(np + 1))/(np + 1), type = "l", xlim = c(0, 1),
-           col = cols[s], lty = ltys[s], xlab = "p", ylab = "Fn(p)")
+           col = cols[s], lty = ltys[s], xlab = "p", ylab = "Fn(p)", cex.lab = exp.text, lwd = exp.lines)
     } else {
-      lines(c(sort(simulation$pval), 1), (1:(np + 1))/(np + 1), col = cols[s], lty = ltys[s])
+      lines(c(sort(simulation$pval), 1), (1:(np + 1))/(np + 1), col = cols[s], lty = ltys[s], lwd = exp.lines)
     }
     
-    lines(c(sort(simulation$pval.corr), 1), (1:(npc + 1))/(npc + 1), col = cols[s], lty = ltys[s])
+    lines(c(sort(simulation$pval.corr), 1), (1:(npc + 1))/(npc + 1), col = cols[s], lty = ltys[s], lwd = exp.lines)
     points(c(sort(simulation$pval.corr), 1), (1:(npc + 1))/(npc + 1), col = alpha(cols[s], 0.2))
     # plot.ecdf(simulation$pval, xlim = c(0,1), main = paste("10^", log10(simulation$n), sep = ""))
     # plot.ecdf(simulation$pval.corr, col = 2, add = TRUE)
   }
 }
-labels <- eval(parse(text = paste("c(", paste("TeX('$n=10^", log10(ns.p), "$')", sep = "", collapse = ","), ")")))
-legend('bottomright', legend = labels, col = cols, lty = ltys)
+labels.sub <- eval(parse(text = paste("c(", paste("TeX('$n=10^", log10(ns.p), "$')", sep = "", collapse = ","), ")")))
+legend('bottomright', legend = labels.sub, col = cols, lty = ltys, cex = exp.text, pt.cex = 1, lwd = exp.lines)
+# dev.off()
 
-
+mspe <- 0.488782 * 4 + 3
 s <- 0
 mses <- list()
 rcor <- list()
@@ -325,7 +329,10 @@ for (file in flz){
     rcor[[s]] <- simulation$all[,2]
   }
 }
-# dev.off()
+mse <- matrix(unlist(mses), ncol = nf)
+boxplot(mse/mspe, log = "y", names = labels, ylab = "Relative approximation error", cex.lab = exp.text, cex.axis =exp.text, yaxt ="n")
+axis(side = 2)
+dev.off()
 
 # par(mfrow = c(2,2))
 # for (file in flz){
