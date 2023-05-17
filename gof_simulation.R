@@ -15,7 +15,7 @@ require(xgboost)
 fitxg <- function(data, data.val){
   data <- xgb.DMatrix(as.matrix(data[,-1]), label = data[,1])
   data.val <- xgb.DMatrix(as.matrix(data.val[,-1]), label = data.val[,1])
-  param <- list(max_depth = 2)
+  param <- list(max_depth = 2, nthread = 1)
   xgb.train(param, data, nrounds = 500, watchlist = list(test = data.val), early_stopping_round = 3, verbose = F)
 }
 predxg <- function(fit, data.val){
@@ -25,7 +25,7 @@ predxg <- function(fit, data.val){
 
 allfitxg <- function(data){
   data.x <- xgb.DMatrix(as.matrix(data[,-1]), label = data[,1])
-  fi.all <- xgb.cv(list(max_depth = 2), data.x, 500, 2, early_stopping_rounds = 3, prediction = TRUE, verbose = F)
+  fi.all <- xgb.cv(list(max_depth = 2, nthread = 1), data.x, 500, 2, early_stopping_rounds = 3, prediction = TRUE, verbose = F)
   out <- list()
   out$fitted.values <- fi.all$pred
   out$residuals <- data$y - fi.all$pred
@@ -90,7 +90,7 @@ for (n in n.vec) {
   set.seed(seed.vec[seed.n])
   
   # initiliaze parralelisation
-  cl<-makeSOCKcluster(16) 
+  cl<-makeSOCKcluster(16)
   registerDoSNOW(cl)
   tic()
   res<-foreach(gu = 1:nsim, .combine = rbind,
