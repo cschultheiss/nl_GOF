@@ -1,5 +1,6 @@
 multi.spec <- function(data, response = "y", B = 25, gamma = NULL, gamma.min = 0.05,
-                       fitting = function(data) gam(wrapFormula(y ~., data = data), data = data),
+                       fitting = function(data, data.val) gam(wrapFormula(y ~., data = data), data = data),
+                       predicting = function(fit, data.val) predict(fit, newdata = data.val),
                        return.predictor = FALSE){
   if(is.null(gamma)){
     gamma <- (1 : (2 * B))/(2 * B)
@@ -16,10 +17,10 @@ multi.spec <- function(data, response = "y", B = 25, gamma = NULL, gamma.min = 0
   for (i in 1:B){
     cat((paste(i, " ")))
     ind <- sample(n, ceiling(n /2))
-    fi1 <- fitting(data[ind,])
-    fi2 <- fitting(data[-ind,])
-    pred12 <- predict(fi1, newdata = data[-ind,])
-    pred21 <- predict(fi2, newdata = data[ind,])
+    fi1 <- fitting(data[ind,], dat[-ind,])
+    fi2 <- fitting(data[-ind,], data[ind,])
+    pred12 <- predicting(fi1, data.val = data[-ind,])
+    pred21 <- predicting(fi2, data.val = data[ind,])
     pred[ind, i] <- pred21
     pred[-ind, i] <- pred12
     
