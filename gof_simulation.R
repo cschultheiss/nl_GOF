@@ -10,6 +10,27 @@ require(FOCI)
 require(mgcv)
 require(sfsmisc)
 require(dHSIC)
+require(xgboost)
+
+fitxg <- function(data, data.val){
+  data <- xgb.DMatrix(as.matrix(data[,-1]), label = data[,1])
+  data.val <- xgb.DMatrix(as.matrix(data.val[,-1]), label = data.val[,1])
+  param <- list(max_depth = 2)
+  xgb.train(param, data, nrounds = 500, watchlist = list(test = data.val), early_stopping_round = 3, verbose = F)
+}
+predxg <- function(fit, data.val){
+  data.val <- xgb.DMatrix(as.matrix(data.val[,-1]), label = data.val[,1])
+  predict(fit, data.val)
+}
+
+allfitxg <- function(data){
+  data.x <- xgb.DMatrix(as.matrix(data[,-1]), label = data[,1])
+  fi.all <- xgb.cv(list(max_depth = 2), data.x, 500, 2, early_stopping_rounds = 3, prediction = TRUE, verbose = F)
+  out <- list()
+  out$fitted.values <- fi.all$pred
+  out$residuals <- data$y - fi.all$pred
+  out
+}
 
 source("multi_spec.R")
 
@@ -51,7 +72,7 @@ Ex <- function(x1, x2, x6, x7) 0.5 * (x1^2 + x2^2 + 2) + 2 * (Ex1(x6) + pot(x7, 
 nsim <- 200
 n.vec <- 10^(2:5)
 n.split <- 25
-p <- 5
+p <- 4
 b <- 1.5
 a <- sqrt(1/3)
 
@@ -73,7 +94,7 @@ for (n in n.vec) {
   registerDoSNOW(cl)
   tic()
   res<-foreach(gu = 1:nsim, .combine = rbind,
-               .packages = c("mgcv", "sfsmisc"), .options.snow = opts) %dorng%{
+               .packages = c("mgcv", "sfsmisc", "xgboost"), .options.snow = opts) %dorng%{
                  
                  if(all(d != .libPaths())) .libPaths(c(.libPaths(), d))
                    library(FOCI)
@@ -91,11 +112,10 @@ for (n in n.vec) {
                  x7 <- x6 + rnorm(n)
                  y <- x3^2 + x4^2 + 2 * (x5 + pot(x7, 1.5)) + rnorm(n, sd = 1)
                  
-                 Eyx <- Ex(x1, x2, x6, x7)
+                 Eyx <- x3^2 + x4^2 + 2 * (x5 + pot(x7, 1.5))
                  
-                 dat <- data.frame(y, x0, x1, x2, x6, x7)
-                 form <- wrapFormula(y ~., data = dat)
-                 fi.all <- gam(form, data = dat)
+                 dat <- data.frame(y, x3, x4, x5, x7)
+                 fi.all <- allfitxg(dat)
                  sel.all <- (1:p) %in% 
                    foci(abs(fi.all$residuals), dat[,-1])$selectedVar$index
                  sel.all0 <- (1:p) %in% 
@@ -104,7 +124,8 @@ for (n in n.vec) {
                  mse <- mean((fi.all$fitted.values - Eyx)^2)
                  rcor <- cor(fi.all$residuals, y - Eyx, method = "spearman")
                  
-                 out <- multi.spec(dat, B = n.split, return.predictor = FALSE)
+                 out <- multi.spec(dat, B = n.split, return.predictor = FALSE,
+                                   fitting = fitxg, predicting = predxg)
 
                  out$values <- c(mse, rcor, sel.all0, sel.all)
 
