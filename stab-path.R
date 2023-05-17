@@ -3,7 +3,7 @@ require(modeest)
 require(scales)
 source("split.R")
 
-folder <- "results/05-Apr-2023 19.07"
+folder <- "results/16-May-2023 09.00"
 savefolder <- "Figures/two-branch"
 flz <- list.files(folder)
 nf <- length(flz)
@@ -222,8 +222,8 @@ for (s in 1:nf){
 }
 
 #ROC alt
-png(paste(savefolder, "/ROC+ECDF+box.png", sep = ""), width = 3600,
-height = 1200, res = 300)
+# png(paste(savefolder, "/ROC+ECDF+box.png", sep = ""), width = 3600,
+# height = 1200, res = 300)
 par(mfrow = c(1, 3))
 exp.text <- 1.5
 exp.points <- 1.5
@@ -296,7 +296,7 @@ for (file in flz){
   if(grepl("results", file)){
     s <- s + 1
     load(paste(folder, "/", file, sep = ""))
-    if(max(simulation$pval) < 1e-5) next()
+    if(max(simulation$pval) < 1e-3) next()
     ns.p <- c(ns.p, simulation$n)
     np <- prod(dim(simulation$pval))
     npc <- length(simulation$pval.corr)
@@ -317,7 +317,7 @@ labels.sub <- eval(parse(text = paste("c(", paste("TeX('$n=10^", log10(ns.p), "$
 legend('bottomright', legend = labels.sub, col = cols, lty = ltys, cex = exp.text, pt.cex = 1, lwd = exp.lines)
 # dev.off()
 
-mspe <- 0.488782 * 4 + 3
+mspe <- 0.488782 * 4 + 3 + 1
 s <- 0
 mses <- list()
 rcor <- list()
@@ -332,7 +332,7 @@ for (file in flz){
 mse <- matrix(unlist(mses), ncol = nf)
 boxplot(mse/mspe, log = "y", names = labels, ylab = "Relative approximation error", cex.lab = exp.text, cex.axis =exp.text, yaxt ="n")
 axis(side = 2)
-dev.off()
+# dev.off()
 
 # par(mfrow = c(2,2))
 # for (file in flz){
