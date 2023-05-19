@@ -72,7 +72,7 @@ Ex <- function(x1, x2, x6, x7) 0.5 * (x1^2 + x2^2 + 2) + 2 * (Ex1(x6) + pot(x7, 
 nsim <- 200
 n.vec <- 10^(2:5)
 n.split <- 25
-p <- 4
+p <- 5
 b <- 1.5
 a <- sqrt(1/3)
 
@@ -112,9 +112,9 @@ for (n in n.vec) {
                  x7 <- x6 + rnorm(n)
                  y <- x3^2 + x4^2 + 2 * (x5 + pot(x7, 1.5)) + rnorm(n, sd = 1)
                  
-                 Eyx <- x3^2 + x4^2 + 2 * (x5 + pot(x7, 1.5))
+                 Eyx <- Ex(x1, x2, x6, x7)
                  
-                 dat <- data.frame(y, x3, x4, x5, x7)
+                 dat <- data.frame(y, x0, x1, x2, x6, x7)
                  fi.all <- allfitxg(dat)
                  sel.all <- (1:p) %in% 
                    foci(abs(fi.all$residuals), dat[,-1])$selectedVar$index
