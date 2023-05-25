@@ -67,12 +67,12 @@ Ex1 <- function(x2) -(dnorm(up(x2)) - dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x
 # Vx <- function(x2) 1 - (up(x2) * dnorm(up(x2)) - lo(x2) * dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2))) -
 #   ((dnorm(up(x2)) - dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2))))^2
 
-Ex <- function(x1, x2, x6, x7) 0.5 * (x1^2 + x2^2 + 2) + 2 * (Ex1(x6) + pot(x7, 1.5))
+Ex <- function(x1, x2, x3) 5 * x1 * Ex1(x1 * sqrt(a^2 + 1/3)) + 2.5 * x2 * x3
 
 nsim <- 200
 n.vec <- 10^(2:5)
 n.split <- 25
-p <- 5
+p <- 3
 b <- 1.5
 a <- sqrt(1/3)
 
@@ -103,18 +103,14 @@ for (n in n.vec) {
                   
                  
                  x0 <- rnorm(n)
-                 x1 <- sqrt(0.5) * (x0 + rnorm(n))
-                 x2 <- sqrt(0.5) * (x0 + rnorm(n))
-                 x3 <- sqrt(0.5) * (x1 + rnorm(n))
-                 x4 <- sqrt(0.5) * (x2 + rnorm(n))
-                 x5 <- rnorm(n)
-                 x6 <- a * pot(x5 , b)/sqrt(va(b)) + runif(n, -1, 1)
-                 x7 <- x6 + rnorm(n)
-                 y <- x3^2 + x4^2 + 2 * (x5 + pot(x7, 1.5)) + rnorm(n, sd = 1)
+                 x1 <- (a * pot(x0 , b)/sqrt(va(b)) + runif(n, -1, 1)) / sqrt(a^2 + 1/3)
+                 x2 <- sqrt(0.5) * (x1 + rnorm(n))
+                 x3 <- rnorm(n)
+                 y <- 5 * x0 * x1 + 2.5 * x2 * x3 + rnorm(n, sd = 1)
                  
-                 Eyx <- Ex(x1, x2, x6, x7)
+                 Eyx <- Ex(x1, x2, x3)
                  
-                 dat <- data.frame(y, x0, x1, x2, x6, x7)
+                 dat <- data.frame(y, x1, x2, x3)
                  fi.all <- allfitxg(dat)
                  sel.all <- (1:p) %in% 
                    foci(abs(fi.all$residuals), dat[,-1])$selectedVar$index
@@ -123,11 +119,12 @@ for (n in n.vec) {
                  
                  mse <- mean((fi.all$fitted.values - Eyx)^2)
                  rcor <- cor(fi.all$residuals, y - Eyx, method = "spearman")
+                 rdif <- mean(abs(rank(fi.all$residuals) - rank(y - Eyx)))
                  
                  out <- multi.spec(dat, B = n.split, return.predictor = FALSE,
                                    fitting = fitxg, predicting = predxg)
 
-                 out$values <- c(mse, rcor, sel.all0, sel.all)
+                 out$values <- c(mse, rcor, rdif, sel.all0, sel.all)
 
                  out
                }
@@ -136,7 +133,7 @@ for (n in n.vec) {
   
   # store output list to matrix
   res.val <- matrix(unlist(res[, "values"]), byrow = TRUE, nrow = nsim)
-  colnames(res.val) <- c("mse", "rcor",
+  colnames(res.val) <- c("mse", "rcor", "rdif",
                          paste(rep(c("all0", "all"), each = p), rep(colnames(res[1,"steps"][[1]]), 2), sep ="."))
   
   res.steps.out <- array(unlist(res[,"steps"]), dim = c(2 * n.split, p, nsim), dimnames = list(NULL,
