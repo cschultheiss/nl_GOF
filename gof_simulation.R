@@ -12,20 +12,19 @@ require(sfsmisc)
 require(dHSIC)
 require(xgboost)
 
-fitxg <- function(data, data.val){
-  data <- xgb.DMatrix(as.matrix(data[,-1]), label = data[,1])
-  data.val <- xgb.DMatrix(as.matrix(data.val[,-1]), label = data.val[,1])
-  param <- list(max_depth = 2, nthread = 1)
-  xgb.train(param, data, nrounds = 500, watchlist = list(test = data.val), early_stopping_round = 3, verbose = F)
+fitxg <- function(data, ind){
+  n <- nrow(data)
+  ind2 <- (1:n)[-ind]
+  data.x <- xgb.DMatrix(as.matrix(data[,-1]), label = data[,1])
+  xgb.cv(list(max_depth = 2, nthread = 1), data = data.x, nrounds = 500, folds = list(ind, ind2), early_stopping_rounds = 3, prediction = TRUE, verbose = F)
 }
-predxg <- function(fit, data.val){
-  data.val <- xgb.DMatrix(as.matrix(data.val[,-1]), label = data.val[,1])
-  predict(fit, data.val)
+predxg <- function(fit, data, ind){
+  fit$pred[ind]
 }
 
 allfitxg <- function(data){
   data.x <- xgb.DMatrix(as.matrix(data[,-1]), label = data[,1])
-  fi.all <- xgb.cv(list(max_depth = 2, nthread = 1), data.x, 500, 2, early_stopping_rounds = 3, prediction = TRUE, verbose = F)
+  fi.all <- xgb.cv(list(max_depth = 2, nthread = 1), data = data.x, nrounds = 500, nfold = 2, early_stopping_rounds = 3, prediction = TRUE, verbose = F)
   out <- list()
   out$fitted.values <- fi.all$pred
   out$residuals <- data$y - fi.all$pred
