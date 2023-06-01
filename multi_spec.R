@@ -30,8 +30,14 @@ multi.spec <- function(data, response = "y", B = 25, gamma = NULL, gamma.min = 0
     if(!is.null(norming)){
       norm12 <- norming(fi1, data, -ind)
       norm21 <- norming(fi2, data, ind)
+      res12u <- res12
+      res21u <- res21
       res12 <- res12 / norm12
+      if (any(is.na(res12)))
+        res12[is.na(res12)] <- 10 * max(abs(res12), na.rm = TRUE) * sign(res12u[is.na(res12)])
       res21  <- res21 / norm21
+      if (any(is.na(res21)))
+        res21[is.na(res21)] <- 10 * max(abs(res21), na.rm = TRUE) * sign(res21u[is.na(res21)])
     }
     
     res[ind, i] <- res21
