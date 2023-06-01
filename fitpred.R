@@ -42,6 +42,10 @@ allfitxg.het <- function(data){
   fi.all2 <- xgb.cv(list(max_depth = 2, nthread = 1), data = data.x2, nrounds = 500, nfold = 2, early_stopping_rounds = 3, prediction = TRUE, verbose = F)
   out <- list()
   out$fitted.values <- fi.all$pred
-  out$residuals <- (data$y - fi.all$pred)/sqrt(fi.all2$pred - fi.all$pred^2)
+  resu <- data$y - fi.all$pred
+  norm <- sqrt(fi.all2$pred - fi.all$pred^2)
+  out$residuals <- resu/norm
+  if (any(is.na(out$residuals)))
+    out$residuals[is.na(out$residuals)] <- 10 * max(abs(out$residuals), na.rm = TRUE) * sign(resu[is.na(out$residuals)])
   out
 }
