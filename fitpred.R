@@ -27,11 +27,11 @@ fitxg.het <- function(data, ind){
   list(fi1, fi2)
 }
 
-pred.xg.het <- function(fit, data, ind){
+predxg.het <- function(fit, data, ind){
   fit[[1]]$pred[ind]
 }
 
-norm.xg.het <- function(fit, data, ind){
+normxg.het <- function(fit, data, ind){
   sqrt(fit[[2]]$pred[ind] - fit[[1]]$pred[ind]^2)
 }
 
