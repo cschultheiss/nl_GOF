@@ -1,6 +1,7 @@
 multi.spec <- function(data, response = "y", B = 25, gamma = NULL, gamma.min = 0.05,
                        fitting = function(data, ind) gam(wrapFormula(y ~., data = data), data = data[ind, ]),
                        predicting = function(fit, data, ind) predict(fit, newdata = data[ind,]),
+                       norming = NULL,
                        return.predictor = FALSE){
   if(is.null(gamma)){
     gamma <- (1 : (2 * B))/(2 * B)
@@ -24,18 +25,28 @@ multi.spec <- function(data, response = "y", B = 25, gamma = NULL, gamma.min = 0
     pred[ind, i] <- pred21
     pred[-ind, i] <- pred12
     
+    res12 <- data[-ind, res.ind] - pred12
+    res21 <- data[ind, res.ind] - pred21
+    
+    if(!is.null(norming)){
+      norm12 <- norming(fi1, data, -ind)
+      norm21 <- norming(fi2, data, ind)
+      res12 <- res12 / norm12
+      res21  <- res21 / norm21
+    }
+    
     if (n /2 > 1e4){
-      hs12 <- dhsic.test((data[-ind, res.ind] - pred12)[1:1e4], data[-ind, -res.ind][1:1e4 ,], method = "gamma")
-      hs21 <- dhsic.test((data[ind, res.ind] - pred21)[1:1e4], data[ind, -res.ind][1:1e4 ,], method = "gamma")
+      hs12 <- dhsic.test((res12)[1:1e4], data[-ind, -res.ind][1:1e4 ,], method = "gamma")
+      hs21 <- dhsic.test((res21)[1:1e4], data[ind, -res.ind][1:1e4 ,], method = "gamma")
     } else {
-      hs12 <- dhsic.test(data[-ind, res.ind] - pred12, data[-ind, -res.ind], method = "gamma")
-      hs21 <- dhsic.test(data[ind, res.ind] - pred21, data[ind, -res.ind], method = "gamma")
+      hs12 <- dhsic.test(res12, data[-ind, -res.ind], method = "gamma")
+      hs21 <- dhsic.test(res21, data[ind, -res.ind], method = "gamma")
     }
     
     pval[c(i, i + B)] <- c(hs12$p.value, hs21$p.value)
     
-    fo12 <- foci(abs(data[-ind, res.ind] - pred12), data[-ind, -res.ind])
-    fo21 <- foci(abs(data[ind, res.ind] - pred21), data[ind, -res.ind])
+    fo12 <- foci(abs(res12), data[-ind, -res.ind])
+    fo21 <- foci(abs(res21), data[ind, -res.ind])
     steps12[i, fo12$selectedVar$index] <- diff(c(0, fo12$stepT))
     steps21[i, fo21$selectedVar$index] <- diff(c(0, fo21$stepT))
     sel12[i,] <- c(fo12$selectedVar$index, rep(NA, dim(data)[2] - 1 - length(fo12$selectedVar$index)))
