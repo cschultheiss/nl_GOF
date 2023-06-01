@@ -39,23 +39,28 @@ progress <- function(n, tag) {
 
 opts <- list(progress = progress)
 
-pot <- function(x, b) sign(x)*abs(x)^b
-va <- function(b) 2^(b)*gamma(b + 0.5)/sqrt(pi)
-up <- function(x2) pot((x2 + 1)*sqrt(va(b))/a, 1/b)
-lo <- function(x2) pot((x2 - 1)*sqrt(va(b))/a, 1/b)
-fx2 <- function(x2) 0.5 *(pnorm(up(x2)) - pnorm(lo(x2)))
-Ex1 <- function(x2) -(dnorm(up(x2)) - dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2)))
+Ecos <- exp(-1/8)
+Ecos2 <- (exp(-1/2) + 1)/ 2
+Esin2 <- 1 - Ecos2
+Ehcos <- exp(-1/8)/2
+
+# pot <- function(x, b) sign(x)*abs(x)^b
+# va <- function(b) 2^(b)*gamma(b + 0.5)/sqrt(pi)
+# up <- function(x2) pot((x2 + 1)*sqrt(va(b))/a, 1/b)
+# lo <- function(x2) pot((x2 - 1)*sqrt(va(b))/a, 1/b)
+# fx2 <- function(x2) 0.5 *(pnorm(up(x2)) - pnorm(lo(x2)))
+# Ex1 <- function(x2) -(dnorm(up(x2)) - dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2)))
 # Vx <- function(x2) 1 - (up(x2) * dnorm(up(x2)) - lo(x2) * dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2))) -
 #   ((dnorm(up(x2)) - dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2))))^2
 
-Ex <- function(x1, x2, x3) 5 * x1 * Ex1(x1 * sqrt(a^2 + 1/3)) + 2.5 * x2 * x3
+# Ex <- function(x1, x2, x3) 5 * x1 * Ex1(x1 * sqrt(a^2 + 1/3)) + 2.5 * x2 * x3
 
 nsim <- 200
 n.vec <- 10^(2:5)
 n.split <- 25
-p <- 3
-b <- 1.5
-a <- sqrt(1/3)
+p <- 2
+# b <- 1.5
+# a <- sqrt(1/3)
 
 RNGkind("L'Ecuyer-CMRG")
 # make it reproducible
@@ -80,30 +85,32 @@ for (n in n.vec) {
                  if(all(d != .libPaths())) .libPaths(c(.libPaths(), d))
                    library(FOCI)
                    library(dHSIC)
+                
+                
+                 x1 <- rnorm(n)
+                 x2 <- sqrt(0.8) * x1 + sqrt(0.2) * rnorm(n)
+                 h <- rnorm(n)
+                 y <- (abs(x2^2) + 2)/(abs(x2^2) + 1) * (sin(0.5 * (x1 + h)) + h)
                  
-                  
+                 m1 <- (abs(x2^2) + 2)/(abs(x2^2) + 1) * (sin(0.5 * x1) * Ecos)
+                 m2 <- ((abs(x2^2) + 2)/(abs(x2^2) + 1))^2 *
+                   (sin(0.5 * x1)^2 * Ecos2 + cos(0.5 * x1^2) * Esin2 + 2 * cos(0.5 * x1) * Ehcos + 1)
+                 eps0 <- (y - m1)/sqrt(m2 - m1^2)
                  
-                 x0 <- rnorm(n)
-                 x1 <- (a * pot(x0 , b)/sqrt(va(b)) + runif(n, -1, 1)) / sqrt(a^2 + 1/3)
-                 x2 <- sqrt(0.5) * (x1 + rnorm(n))
-                 x3 <- rnorm(n)
-                 y <- 5 * x0 * x1 + 2.5 * x2 * x3 + rnorm(n, sd = 1)
-                 
-                 Eyx <- Ex(x1, x2, x3)
-                 
-                 dat <- data.frame(y, x1, x2, x3)
-                 fi.all <- allfitxg(dat)
+                 dat <- data.frame(y, x1, x2)
+                 fi.all <- allfitxg.het(dat)
                  sel.all <- (1:p) %in% 
-                   foci(abs(fi.all$residuals), dat[,-1])$selectedVar$index
+                   foci(fi.all$residuals, dat[,-1])$selectedVar$index
                  sel.all0 <- (1:p) %in% 
-                   foci(abs(y - Eyx), dat[,-1])$selectedVar$index
+                   foci(eps0, dat[,-1])$selectedVar$index
                  
-                 mse <- mean((fi.all$fitted.values - Eyx)^2)
-                 rcor <- cor(fi.all$residuals, y - Eyx, method = "spearman")
-                 rdif <- mean(abs(rank(fi.all$residuals) - rank(y - Eyx)))
+                 mse <- mean((fi.all$residuals - eps0)^2)
+                 rcor <- cor(fi.all$residuals, eps0, method = "spearman")
+                 rdif <- mean(abs(rank(fi.all$residuals) - rank(eps0)))
                  
-                 out <- multi.spec(dat, B = n.split, return.predictor = FALSE,
-                                   fitting = fitxg, predicting = predxg)
+                 out <- multi.spec(dat, B = n.split, return.predictor = FALSE, return.residual = FALSE,
+                                   fitting = fitxg.het, predicting = predxg.het, norming = normxg.het,
+                                   trafo = function(x) x)
 
                  out$values <- c(mse, rcor, rdif, sel.all0, sel.all)
 
