@@ -44,14 +44,14 @@ Ecos2 <- (exp(-1/2) + 1)/ 2
 Esin2 <- 1 - Ecos2
 Ehcos <- exp(-1/8)/2
 
-# pot <- function(x, b) sign(x)*abs(x)^b
-# va <- function(b) 2^(b)*gamma(b + 0.5)/sqrt(pi)
-# up <- function(x2) pot((x2 + 1)*sqrt(va(b))/a, 1/b)
-# lo <- function(x2) pot((x2 - 1)*sqrt(va(b))/a, 1/b)
-# fx2 <- function(x2) 0.5 *(pnorm(up(x2)) - pnorm(lo(x2)))
-# Ex1 <- function(x2) -(dnorm(up(x2)) - dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2)))
-# Vx <- function(x2) 1 - (up(x2) * dnorm(up(x2)) - lo(x2) * dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2))) -
-#   ((dnorm(up(x2)) - dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2))))^2
+pot <- function(x, b) sign(x)*abs(x)^b
+va <- function(b) 2^(b)*gamma(b + 0.5)/sqrt(pi)
+up <- function(x2) pot((x2 + 1)*sqrt(va(b))/a, 1/b)
+lo <- function(x2) pot((x2 - 1)*sqrt(va(b))/a, 1/b)
+fx2 <- function(x2) 0.5 *(pnorm(up(x2)) - pnorm(lo(x2)))
+Ex1 <- function(x2) -(dnorm(up(x2)) - dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2)))
+Vx <- function(x2) 1 - (up(x2) * dnorm(up(x2)) - lo(x2) * dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2))) -
+  ((dnorm(up(x2)) - dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2))))^2
 
 # Ex <- function(x1, x2, x3) 5 * x1 * Ex1(x1 * sqrt(a^2 + 1/3)) + 2.5 * x2 * x3
 
@@ -59,8 +59,8 @@ nsim <- 200
 n.vec <- 10^(2:5)
 n.split <- 25
 p <- 2
-# b <- 1.5
-# a <- sqrt(1/3)
+b <- 1.5
+a <- sqrt(1/3)
 
 RNGkind("L'Ecuyer-CMRG")
 # make it reproducible
@@ -87,14 +87,15 @@ for (n in n.vec) {
                    library(dHSIC)
                 
                 
-                 x1 <- rnorm(n)
-                 x2 <- sqrt(0.8) * x1 + sqrt(0.2) * rnorm(n)
                  h <- rnorm(n)
-                 y <- (abs(x2^2) + 2)/(abs(x2^2) + 1) * (sin(0.5 * (x1 + h)) + h)
+                 x1 <- a * sqrt(0.5) * (h + rnorm(n)) + runif(n, -1, 1)
+                 x2 <- sqrt(0.5) * x1 + sqrt(1/3) * rnorm(n)
                  
-                 m1 <- (abs(x2^2) + 2)/(abs(x2^2) + 1) * (sin(0.5 * x1) * Ecos)
-                 m2 <- ((abs(x2^2) + 2)/(abs(x2^2) + 1))^2 *
-                   (sin(0.5 * x1)^2 * Ecos2 + cos(0.5 * x1^2) * Esin2 + 2 * cos(0.5 * x1) * Ehcos + 1)
+                 y <- (abs(x2^2) + 2)/(abs(x2^2) + 1) * (h)
+                 
+                 m1 <- sqrt(0.5) * (abs(x2^2) + 2)/(abs(x2^2) + 1) * (Ex1(x1))
+                 m2 <- 0.5 * ((abs(x2^2) + 2)/(abs(x2^2) + 1))^2 *
+                   (Vx(x1) + Ex1(x1)^2 + 1)
                  eps0 <- (y - m1)/sqrt(m2 - m1^2)
                  
                  dat <- data.frame(y, x1, x2)
@@ -104,7 +105,13 @@ for (n in n.vec) {
                  sel.all0 <- (1:p) %in% 
                    foci(eps0, dat[,-1])$selectedVar$index
                  
-                 mse <- mean((fi.all$residuals - eps0)^2)
+                 div <- which(abs(fi.all$residuals) > (max(abs(fi.all$residuals)) - 1e-5))
+                 if(length(div) > 0){
+                   mse <- mean((fi.all$residuals - eps0)[-div]^2)
+                 } else {
+                   mse <- mean((fi.all$residuals - eps0)^2)
+                 }
+                 
                  rcor <- cor(fi.all$residuals, eps0, method = "spearman")
                  rdif <- mean(abs(rank(fi.all$residuals) - rank(eps0)))
                  
@@ -112,7 +119,7 @@ for (n in n.vec) {
                                    fitting = fitxg.het, predicting = predxg.het, norming = normxg.het,
                                    trafo = function(x) x)
 
-                 out$values <- c(mse, rcor, rdif, sel.all0, sel.all)
+                 out$values <- c(mse, rcor, rdif, length(div), sel.all0, sel.all)
 
                  out
                }
@@ -121,7 +128,7 @@ for (n in n.vec) {
   
   # store output list to matrix
   res.val <- matrix(unlist(res[, "values"]), byrow = TRUE, nrow = nsim)
-  colnames(res.val) <- c("mse", "rcor", "rdif",
+  colnames(res.val) <- c("mse", "rcor", "rdif", "0div",
                          paste(rep(c("all0", "all"), each = p), rep(colnames(res[1,"steps"][[1]]), 2), sep ="."))
   
   res.steps.out <- array(unlist(res[,"steps"]), dim = c(2 * n.split, p, nsim), dimnames = list(NULL,
