@@ -59,7 +59,7 @@ nsim <- 200
 n.vec <- 10^(2:5)
 n.split <- 25
 p <- 2
-b <- 1.5
+b <- 1
 a <- sqrt(1/3)
 
 RNGkind("L'Ecuyer-CMRG")
