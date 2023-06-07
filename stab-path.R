@@ -4,7 +4,7 @@ require(scales)
 source("split.R")
 
 folder <- "results/16-May-2023 09.00"
-savefolder <- "Figures/two-branch"
+savefolder <- "Figures/two-branchf"
 flz <- list.files(folder)
 nf <- length(flz)
 analysis <- paste(folder, "/analysis.RData", sep = "")
