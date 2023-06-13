@@ -48,18 +48,20 @@ opts <- list(progress = progress)
 # Vx <- function(x2) 1 - (up(x2) * dnorm(up(x2)) - lo(x2) * dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2))) -
 #   ((dnorm(up(x2)) - dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2))))^2
 
-n <- 1e7
-x1 <- rnorm(n)
-eps <- rexp(n) * (1 - 2 * rbinom(n, 1, 0.5)) * sqrt(0.5)
-x2 <- x1 + eps 
 
-x.grid <- seq(quantile(x2, 0), quantile(x2, 1), length.out = 1000)
-fx1 <- function(x) dnorm(x, sd = sqrt(2))
-fx2 <- function(x) dexp(abs(x)) / 2
-fx12 <- function(x1, x2) fx1(x1) * fx2(x2 - x1)
+fx1 <- function(x) dnorm(x)
+fx2 <- function(x) dnorm(x, sd = sqrt(0.5))
+f1 <- function(x) sin(2 * x)
+fx12 <- function(x1, x2) fx1(x1) * fx2(x2 - f1(x1))
 norm <- Vectorize(function(x2) integrate(function(x1) fx12(x1, x2), 2 * min(x1), 2 * max(x1))$value)
 m1 <- Vectorize(function(x2) integrate(function(x1) x1 * fx12(x1, x2), 2 * min(x1), 2 * max(x1))$value)
 m2 <- Vectorize(function(x2) integrate(function(x1) x1^2 * fx12(x1, x2), 2 * min(x1), 2 * max(x1))$value)
+
+n <- 1e7
+x1 <- rnorm(n)
+eps <- rnorm(n, sd = sqrt(0.5))
+x2 <- f1(x1) + eps 
+x.grid <- seq(quantile(x2, 0), quantile(x2, 1), length.out = 1000)
 norm.grid <- norm(x.grid)
 ss1 <- smooth.spline(x.grid, m1(x.grid)/norm.grid, cv = TRUE)
 ss2 <- smooth.spline(x.grid, m2(x.grid)/norm.grid, cv = TRUE)
@@ -100,8 +102,8 @@ for (n in n.vec) {
                 
                 
                  h <- rnorm(n)
-                 x1 <- h + rexp(n) * (1 - 2 * rbinom(n, 1, 0.5)) * sqrt(0.5)
-                 x2 <- (x1 + rnorm(n))*sqrt(1/3)
+                 x1 <- f1(h) + rnorm(n, sd = sqrt(0.5))
+                 x2 <- (x1 + rnorm(n, sd = sqrt(0.5)))*sqrt(2/3)
                  
                  y <- (abs(x2^2) + 2)/(abs(x2^2) + 1) * (h)
                  
