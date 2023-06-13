@@ -1,22 +1,27 @@
 require(mgcv)
 require(FOCI)
+pot <- function(x, b) sign(x)*abs(x)^b
+va <- function(b) 2^(b)*gamma(b + 0.5)/sqrt(pi)
 
-fx1 <- function(x) dnorm(x, sd = sqrt(2))
+
+fx1 <- function(x) dnorm(x)
+f1 <- function(x) sin(2*x)
+b <- 1
 scale.a <- sqrt(6)
-fx2a <- function(x) dt(x*scale.a, 7)*scale.a
-fx2b <- function(x) dunif(x, -1, 1)
+fx2a <- function(x) dexp(abs(x)) / 2
+fx2b <- function(x) dnorm(x, sd = 1)
 fx2 <- Vectorize(function(x) integrate(function(z, x) fx2a(x-z)*fx2b(z),-Inf,Inf,x)$value)
-fx2 <- function(x) dexp(abs(x)) / 2
+fx2 <- function(x) dnorm(x)
 
-fx12 <- function(x1, x2) fx1(x1) * fx2(x2 - x1)
+fx12 <- function(x1, x2) fx1(x1) * fx2(x2 -f1(x1))
 
 n <- 1e5
-x1 <- rnorm(n, sd = sqrt(2))
-eps <- rexp(n) * (1 - 2 * rbinom(n, 1, 0.5))
-x2 <- x1 + eps
+x1 <- rnorm(n)
+epsa <- rnorm(n)
+x2 <- f1(x1) + epsa
 par(mfrow = c(1,1))
-plot(fx2, xlim = range(x2))
-lines(density(eps), col = 2)
+plot(fx2, xlim = range(epsa))
+lines(density(epsa), col = 2)
 
 par(mfrow = c(3,3))
 for (x2o in quantile(x2, (1:9)/ 10)){
@@ -51,7 +56,7 @@ ga3 <- gam(x1^3 ~ s(x2))
 
 subind <- which((x2 > quantile(x2, 0.01)) & (x2 < quantile(x2, 0.99)))
 par(mfrow = c(1,1))
-plot(x2, m2x- m1x^2)
+plot(x2[subind], (m2x- m1x^2)[subind])
 abline(v = quantile(x2, c(0.001, 0.999)))
 points(x2, ga2$fitted.values - ga1$fitted.values^2, col = 2)
 
