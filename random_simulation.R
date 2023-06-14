@@ -72,11 +72,12 @@ stab <- function(sel){
 RNGkind("L'Ecuyer-CMRG")
 # make it reproducible
 set.seed(42)
-mes <- replicate(nsim, sort(sample.int(p.tot, p.mes)))
 disti.pool <- c(rnorm, function(n) runif(n, -sqrt(3), sqrt(3)), 
                 function(n) rexp(n) * sample(c(-1, 1), n, replace = TRUE) / sqrt(2))
 disti <- replicate(nsim, sample(rep(disti.pool, each = ceiling((p.tot + 1) / length(disti.pool))), p.tot + 1))
-pots <- replicate(nsim, cbind(runif(p.an, 0.5, 0.8), runif(p.an, 1.2, 1.5))[cbind(1:p.an,sample(1:2,p.an, TRUE))])
+potsl <- replicate(nsim, runif(p.an, 0.5, 0.8))
+potsh <- replicate(nsim, runif(p.an, 1.2, 1.5))
+frac <- replicate(nsim, runif(p.an, 0.3, 0.7))
 
 set.seed(42)
 seed.vec <- sample(1:10000, length(n.vec))
@@ -105,18 +106,31 @@ for (n in n.vec) {
                    eps[,j] <- disti[j, gu][[1]](n)
                  }
                  x1 <- eps[,1]
-                 x2 <- scale(pot(x1, pots[1, gu])) + 0.5 * eps[,2]
-                 x3 <- scale(pot(x2, pots[2, gu])) + 0.5 * eps[,3]
-                 y <- scale(pot(x1, pots[3, gu])) + scale(pot(x3, pots[4, gu])) + 0.5 * eps[,6]
-                 x4 <- scale(pot(y, pots[5, gu])) + 0.5 * eps[,4]
+                 x2 <- scale(frac[1, gu] * pot(x1, potsl[1, gu]) 
+                             + (1 - frac[1, gu]) * abs(x1)^potsh[1, gu]) + 0.5 * eps[,2]
+                 x3 <- scale(frac[2, gu] * pot(x2, potsl[2, gu]) 
+                             + (1 - frac[2, gu]) * abs(x2)^potsh[2, gu]) + 0.5 * eps[,3]
+                 y <- scale(-frac[3, gu] * pot(x1, potsl[3, gu]) 
+                            + (1 - frac[3, gu]) * abs(x1)^potsh[3, gu]) + 
+                   scale(frac[4, gu] * pot(x3, potsl[4, gu]) 
+                         + (1 - frac[4, gu]) * abs(x3)^potsh[4, gu]) + 0.5 * eps[,6]
+                 x4 <- scale(frac[5, gu] * pot(y, potsl[5, gu]) 
+                             + (1 - frac[5, gu]) * abs(y)^potsh[5, gu]) + 0.5 * eps[,4]
                  x5 <- eps[,5]
                  x.all <- data.frame(x1, x2, x3, x4, x5)
-                 x <- x.all[,mes[,gu]]
-                 dat <- data.frame(y, x)
-
                  
-                 out <- multi.spec(dat, B = n.split, return.predictor = TRUE, return.residual = FALSE,
-                                   fitting = fitxg, predicting = predxg)
+                 out <- list()
+                 for (s in 1:ncol(all.comb)){
+                   x <- x.all[,all.comb[,s]]
+                   dat <- data.frame(y, x)
+                   ms <- multi.spec(dat, B = n.split, return.predictor = FALSE, return.residual = FALSE,
+                                    fitting = fitxg, predicting = predxg)
+                   names(ms) <- paste(names(ms), paste(all.comb[,s], collapse=""), sep = "")
+
+                   
+                   out <- c(out, ms)
+                 }
+                 
                  
                  
                  out
@@ -125,28 +139,29 @@ for (n in n.vec) {
   stopCluster(cl)
   
   # store output list to matrix
+  simulation <- list(n = n, r.seed = attr(res, "rng"), "commit" = commit)
+  for (s in 1:ncol(all.comb)){
+    mes <- paste(all.comb[,s], collapse="")
+    res.steps.out <- array(unlist(res[, paste("steps", mes, sep = "")]),
+                           dim = c(2 * n.split, p.mes, nsim), dimnames = list(NULL, colnames(res[1, paste("steps", mes, sep = "")][[1]]), NULL))
+    res.sel.out <- array(unlist(res[, paste("sel", mes, sep = "")]), dim = c(2 * n.split, p.mes, nsim))
+    res.pval <- matrix(unlist(res[, paste("pval", mes, sep = "")]), byrow = TRUE, nrow = nsim)
+    res.pval.corr <- unlist(res[, paste("pval.corr", mes, sep = "")])
+    simulation[[mes]] <- list(mes = all.comb[,s], steps.out = res.steps.out, sel.out = res.sel.out,
+                           pval = res.pval, pval.corr = res.pval.corr)
+    
+    print(mes)
+    print(median(res.pval.corr))
+    for (j in 1:p.mes){
+      # print(paste(j, ": ", sum(res.sel.in == j, na.rm = TRUE), sep = ""))
+      print(paste(all.comb[j,s], ": ", sum(res.sel.out == j, na.rm = TRUE), sep = ""))
+    }
+  }
   
-  res.steps.out <- array(unlist(res[,"steps"]), dim = c(2 * n.split, p, nsim), dimnames = list(NULL,
-                                                                                               colnames(res[1,"steps"][[1]]), NULL))
-  res.sel.out <- array(unlist(res[,"sel"]), dim = c(2 * n.split, p, nsim))
   
-  res.pval <- matrix(unlist(res[, "pval"]), byrow = TRUE, nrow = nsim)
-  
-  res.pval.corr <- unlist(res[,"pval.corr"])
-  
-  # store output quantities, sample size, random seed, commit
-  simulation <- list(steps.out = res.steps.out, sel.out = res.sel.out,
-                     pval = res.pval, pval.corr = res.pval.corr,
-                     n = n, r.seed = attr(res, "rng"), "commit" = commit)
   # create unique filename based on sample size and time
   resname <- paste0("results n=", n, " ", format(Sys.time(), "%d-%b-%Y %H.%M"))
   # save the file to the folder
   if (save) save(simulation, file = paste("results/", newdir, "/", resname, ".RData", sep = ""))
-  print(median(res.pval.corr))
-  print(apply(res.val[,1:4], 2, mean))
-  print(apply(!is.na(res.val[,(4 + 1) : (4 + 2 * p)]), 2, mean))
-  for (j in 1:p){
-    # print(paste(j, ": ", sum(res.sel.in == j, na.rm = TRUE), sep = ""))
-    print(paste(j, ": ", sum(res.sel.out == j, na.rm = TRUE), sep = ""))
-  }
+
 }
