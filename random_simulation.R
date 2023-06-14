@@ -40,7 +40,7 @@ progress <- function(n, tag) {
 opts <- list(progress = progress)
 
 
-nsim <- 200
+nsim <- 100
 n.vec <- 10^(2:5)
 
 n.split <- 25
@@ -48,9 +48,11 @@ p.tot <- 5
 p.mes <- 3
 p.an <- 5
 
+pot <- function(x, p) abs(x)^p * sign(x)
+all.comb <- combn(1:p.tot, p.mes)
+
 stab <- function(sel){
-  all.comb <- combn(1:p.tot, p.mes)
-  sel.pos <- which(duplicated(rbind(sel, t(combn(1:5,3)))))- 1
+  sel.pos <- which(duplicated(rbind(sel, t(all.comb))))- 1
   if (sel.pos == 1){
     1:3
   } else if(sel.pos %in% c(2, 4, 7)){
@@ -78,6 +80,9 @@ disti <- replicate(nsim, sample(rep(disti.pool, each = ceiling((p.tot + 1) / len
 potsl <- replicate(nsim, runif(p.an, 0.5, 0.8))
 potsh <- replicate(nsim, runif(p.an, 1.2, 1.5))
 frac <- replicate(nsim, runif(p.an, 0.3, 0.7))
+
+setup <- list(dist = disti, potsl = potsl, potsh = potsh, frac = frac)
+if (save) save(setup, file = paste("results/", newdir, "/setup.RData", sep = ""))
 
 set.seed(42)
 seed.vec <- sample(1:10000, length(n.vec))
