@@ -14,12 +14,13 @@ fisher.split <- function(sels){
   pv <- rep(1, ncol(sels))
   mn <- mean(sels)
   cs <- colSums(sels)
-  rej <- which(cs <= mn * B)
-  comp <- max(cs[cs <= mn * B])
-  if(any(cs > mn * B))
+  if(any(cs > (mn * B + 1e-5))){
+    rej <- which(cs <= (mn * B + 1e-5))
+    comp <- max(cs[cs <= (mn * B + 1e-5)])
     pv[-rej] <- sapply(cs[-rej],
-                    function(x) fisher.test(cbind(c(B - x, x), c(B - comp, comp)),
-                                                  alternative = "less")$p.value)
+                       function(x) fisher.test(cbind(c(B - x, x), c(B - comp, comp)),
+                                               alternative = "less")$p.value)
+  }
   pv
 }
 
