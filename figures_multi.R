@@ -50,6 +50,7 @@ for (file in flz){
   t <- t + 1
   load(paste(folder, "/", file, sep = ""))
   pv.all <- matrix(NA, ncol = 100, nrow = 0)
+  all.s.all <- array(NA, dim = c(50, 0, 100))
   for (s in 1:ncol(all.comb)){
     mes <- all.comb[, s]
     all.s <- simulation[[paste(mes, collapse = "")]]$steps.out
@@ -61,9 +62,8 @@ for (file in flz){
     }
     pv <- apply(1 * is.na(all.s), 3, fisher.split)
     if(get.pval) pv[, glob] <- 0
-    print(length(glob))
-    
     pv.all <- rbind(pv.all, pv)
+    all.s.all <- abind(all.s.all, all.s, along =  2)
   }
   
   pis <- sort(unique(c(as.matrix(pv.all))))
@@ -77,4 +77,8 @@ for (file in flz){
   } else {
     points(r1, r2, xlim = c(0,1), ylim = c(0,1), type = "l", col = cols[t], lty = ltys[t], lwd = exp.lines)
   }
+  pi0 <- 0.01
+  points(mean(pv.all[unstab,] <= pi0), mean(pv.all[stab,] <= pi0), pch = 4, col = cols[t], cex = exp.points)
+  
+  points(mean(is.na(all.s.all[,unstab,])), mean(is.na(all.s.all[,stab,])), pch = pchs[t], col = cols[t], cex = exp.points)
 }
