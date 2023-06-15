@@ -3,7 +3,7 @@ require(modeest)
 require(scales)
 source("split.R")
 
-folder <- "results/16-May-2023 09.00"
+folder <- "results/13-Jun-2023 13.42"
 savefolder <- "Figures/two-branchf"
 flz <- list.files(folder)
 nf <- length(flz)
@@ -98,7 +98,7 @@ sim.sel <- FALSE
 add.split <- TRUE
 B <- dim(all.s.list$out[[1]])[1]
 p <- dim(all.s.list$out[[1]])[2]
-stab <- c(1,5)
+stab <- c(2)
 unstab <- (1:p)[-stab]
 
 par(mfrow = c(2,2))
@@ -272,8 +272,10 @@ for (s in 1:nf){
   t1.mat <- is.na(all.s.list$out[[s]][,unstab,,1])
   p.mat <- is.na(all.s.list$out[[s]][,stab,,1])
   if (get.pval){
-    t1.mat <- aperm(t1.mat, c(1, 3, 2))
-    p.mat <- aperm(p.mat, c(1, 3, 2))
+    if(length(dim(t1.mat)) > 2)
+      t1.mat <- aperm(t1.mat, c(1, 3, 2))
+    if(length(dim(p.mat)) > 2)
+      p.mat <- aperm(p.mat, c(1, 3, 2))
     t1.mat <- pmax(t1.mat, glob.s)
     p.mat <- pmax(p.mat, glob.s)
   }
@@ -317,7 +319,7 @@ labels.sub <- eval(parse(text = paste("c(", paste("TeX('$n=10^", log10(ns.p), "$
 legend('bottomright', legend = labels.sub, col = cols, lty = ltys, cex = exp.text, pt.cex = 1, lwd = exp.lines)
 # dev.off()
 
-mspe <- 0.488782 * 4 + 3 + 1
+mspe <- 1
 s <- 0
 mses <- list()
 rcor <- list()
@@ -333,6 +335,32 @@ mse <- matrix(unlist(mses), ncol = nf)
 boxplot(mse/mspe, log = "y", names = labels, ylab = "Relative approximation error", cex.lab = exp.text, cex.axis =exp.text, yaxt ="n")
 axis(side = 2)
 # dev.off()
+
+
+# only with two predictors
+mn <- Vectorize(function(i, pi = pi0){
+  sr <- TRUE
+  j <- i - 1
+  while (j >= 0 && sr) {
+    if (fisher.split(cbind(c(rep(1, i), rep(0, B-i)), c(rep(1, j), rep(0, B-j))))[1] < pi){
+      sr <- FALSE
+    } else {
+      j <- j - 1
+    }
+  }
+ j
+})
+
+par(mfrow = c(2,2))
+for (s in 1:nf){
+  all.s.0 <- all.s.list$out[[s]][,,,1]
+  ina <- apply(is.na(all.s.0), 2:3, sum)
+  plot(ina[unstab,], ina[stab,], xlim = c(0, B), ylim = c(0, B),
+       col = 1 + 2 *(ina[unstab,] <= mn(ina[stab,])) + 1 *(ina[stab,] <= mn(ina[unstab,])),
+       xlab = "unstable", ylab = "stable")
+  lines(0:B, mn(0:B))
+  lines(mn(0:B), 0:B)
+}
 
 # par(mfrow = c(2,2))
 # for (file in flz){
