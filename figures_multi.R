@@ -1,4 +1,6 @@
 require(latex2exp)
+require(abind)
+require(scales)
 source("split.R")
 
 folder <- "results/14-Jun-2023 11.43"
@@ -63,6 +65,14 @@ for (file in flz){
     pv <- apply(1 * is.na(all.s), 3, fisher.split)
     if(get.pval) pv[, glob] <- 0
     pv.all <- rbind(pv.all, pv)
+    
+    all.s <- is.na(all.s)
+    if (get.pval){
+      all.s <- aperm(all.s, c(1, 3, 2))
+      all.s <- pmax(all.s, glob.s)
+      all.s <- aperm(all.s, c(1, 3, 2))
+    }
+    
     all.s.all <- abind(all.s.all, all.s, along =  2)
   }
   
@@ -80,5 +90,66 @@ for (file in flz){
   pi0 <- 0.01
   points(mean(pv.all[unstab,] <= pi0), mean(pv.all[stab,] <= pi0), pch = 4, col = cols[t], cex = exp.points)
   
-  points(mean(is.na(all.s.all[,unstab,])), mean(is.na(all.s.all[,stab,])), pch = pchs[t], col = cols[t], cex = exp.points)
+  points(mean(all.s.all[,unstab,]), mean(all.s.all[,stab,]), pch = pchs[t], col = cols[t], cex = exp.points)
+}
+
+cols <- 1:4
+ltys <- 1:4
+t <- 0
+for (file in flz){
+  t <- t + 1
+  load(paste(folder, "/", file, sep = ""))
+  pv.corr.unstab <- matrix(NA, ncol = 100, nrow = 0)
+  pv.unstab <- array(NA, dim = c(100, 50, 0))
+  for (s in 1:ncol(all.comb)){
+    mes <- all.comb[, s]
+    if (length(which.stab(mes)) < length(mes)){
+    pv <- simulation[[paste(mes, collapse = "")]]$pval
+    pv.corr <- simulation[[paste(mes, collapse = "")]]$pval.corr
+    pv.corr.unstab <- rbind(pv.corr.unstab, pv.corr)
+    pv.unstab <- abind(pv.unstab, pv, along = 3)
+    }
+  }
+  
+  if(max(pv.unstab) < 1e-3) next()
+  np <- prod(dim(pv.unstab))
+  npc <- prod(dim(pv.corr.unstab))
+  if (t == 1){
+    plot(c(sort(pv.unstab), 1), (1:(np + 1))/(np + 1), type = "l", xlim = c(0, 1),
+         col = cols[t], lty = ltys[t], xlab = "p", ylab = "Fn(p)", cex.lab = exp.text, lwd = exp.lines)
+  } else {
+    lines(c(sort(pv.unstab), 1), (1:(np + 1))/(np + 1), col = cols[t], lty = ltys[t], lwd = exp.lines)
+  }
+  
+  lines(c(sort(pv.corr.unstab), 1), (1:(npc + 1))/(npc + 1), col = cols[t], lty = ltys[t], lwd = exp.lines)
+  points(c(sort(pv.corr.unstab), 1), (1:(npc + 1))/(npc + 1), col = alpha(cols[t], 0.2))
+}
+t <- 0
+for (file in flz){
+  t <- t + 1
+  load(paste(folder, "/", file, sep = ""))
+  pv.corr.stab <- matrix(NA, ncol = 100, nrow = 0)
+  pv.stab <- array(NA, dim = c(100, 50, 0))
+  for (s in 1:ncol(all.comb)){
+    mes <- all.comb[, s]
+    if (length(which.stab(mes)) >= length(mes)){
+      pv <- simulation[[paste(mes, collapse = "")]]$pval
+      pv.corr <- simulation[[paste(mes, collapse = "")]]$pval.corr
+      pv.corr.stab <- rbind(pv.corr.stab, pv.corr)
+      pv.stab <- abind(pv.stab, pv, along = 3)
+    }
+  }
+  
+  if(max(pv.stab) < 1e-3) next()
+  np <- prod(dim(pv.stab))
+  npc <- prod(dim(pv.corr.stab))
+  if (t == 1){
+    plot(c(sort(pv.stab), 1), (1:(np + 1))/(np + 1), type = "l", xlim = c(0, 1),
+         col = cols[t], lty = ltys[t], xlab = "p", ylab = "Fn(p)", cex.lab = exp.text, lwd = exp.lines)
+  } else {
+    lines(c(sort(pv.stab), 1), (1:(np + 1))/(np + 1), col = cols[t], lty = ltys[t], lwd = exp.lines)
+  }
+  
+  lines(c(sort(pv.corr.stab), 1), (1:(npc + 1))/(npc + 1), col = cols[t], lty = ltys[t], lwd = exp.lines)
+  points(c(sort(pv.corr.stab), 1), (1:(npc + 1))/(npc + 1), col = alpha(cols[t], 0.2))
 }
