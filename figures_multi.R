@@ -8,6 +8,9 @@ flz <- list.files(folder)
 flz <- flz[grep("results", flz)]
 p.tot <- 5
 p.mes <- 3
+load(paste(folder, "/", flz[1], sep = ""))
+nsim <- dim(simulation[[4]]$pval)[1]
+B <- dim(simulation[[4]]$pval)[2]
 
 all.comb <- combn(1:p.tot, p.mes)
 
@@ -54,8 +57,8 @@ t <- 0
 for (file in flz){
   t <- t + 1
   load(paste(folder, "/", file, sep = ""))
-  pv.all <- matrix(NA, ncol = 100, nrow = 0)
-  all.s.all <- array(NA, dim = c(50, 0, 100))
+  pv.all <- matrix(NA, ncol = nsim, nrow = 0)
+  all.s.all <- array(NA, dim = c(B, 0, nsim))
   for (s in 1:ncol(all.comb)){
     mes <- all.comb[, s]
     all.s <- simulation[[paste(mes, collapse = "")]]$steps.out
@@ -102,8 +105,8 @@ t <- 0
 for (file in flz){
   t <- t + 1
   load(paste(folder, "/", file, sep = ""))
-  pv.corr.unstab <- matrix(NA, ncol = 100, nrow = 0)
-  pv.unstab <- array(NA, dim = c(100, 50, 0))
+  pv.corr.unstab <- matrix(NA, ncol = nsim, nrow = 0)
+  pv.unstab <- array(NA, dim = c(nsim, B, 0))
   for (s in 1:ncol(all.comb)){
     mes <- all.comb[, s]
     if (length(which.stab(mes)) < length(mes)){
@@ -113,8 +116,7 @@ for (file in flz){
     pv.unstab <- abind(pv.unstab, pv, along = 3)
     }
   }
-  
-  if(max(pv.unstab) < 1e-3) next()
+  if(max(pv.unstab) < 5e-2) next()
   np <- prod(dim(pv.unstab))
   npc <- prod(dim(pv.corr.unstab))
   if (t == 1){
@@ -127,12 +129,13 @@ for (file in flz){
   lines(c(sort(pv.corr.unstab), 1), (1:(npc + 1))/(npc + 1), col = cols[t], lty = ltys[t], lwd = exp.lines)
   points(c(sort(pv.corr.unstab), 1), (1:(npc + 1))/(npc + 1), col = alpha(cols[t], 0.2))
 }
+
 t <- 0
 for (file in flz){
   t <- t + 1
   load(paste(folder, "/", file, sep = ""))
-  pv.corr.stab <- matrix(NA, ncol = 100, nrow = 0)
-  pv.stab <- array(NA, dim = c(100, 50, 0))
+  pv.corr.stab <- matrix(NA, ncol = nsim, nrow = 0)
+  pv.stab <- array(NA, dim = c(nsim, B, 0))
   for (s in 1:ncol(all.comb)){
     mes <- all.comb[, s]
     if (length(which.stab(mes)) >= length(mes)){
@@ -143,7 +146,7 @@ for (file in flz){
     }
   }
   
-  if(max(pv.stab) < 1e-3) next()
+  if(max(pv.stab) < 5e-2) next()
   np <- prod(dim(pv.stab))
   npc <- prod(dim(pv.corr.stab))
   if (t == 1){
@@ -168,8 +171,8 @@ t <- 0
 for (file in flz){
   t <- t + 1
   load(paste(folder, "/", file, sep = ""))
-  pv.all <- matrix(NA, ncol = 100, nrow = 0)
-  all.s.all <- array(NA, dim = c(50, 0, 100))
+  pv.all <- matrix(NA, ncol = nsim, nrow = 0)
+  all.s.all <- array(NA, dim = c(B, 0, nsim))
   for (s in 1:ncol(all.comb)){
     mes <- all.comb[, s]
     if(length(which.stab(mes)) < length(mes)) next()
