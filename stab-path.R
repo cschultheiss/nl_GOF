@@ -3,7 +3,7 @@ require(modeest)
 require(scales)
 source("split.R")
 
-folder <- "results/13-Jun-2023 13.42"
+folder <- "results/gam-sd0"
 savefolder <- "Figures/two-branchf"
 flz <- list.files(folder)
 nf <- length(flz)
@@ -98,7 +98,7 @@ sim.sel <- FALSE
 add.split <- TRUE
 B <- dim(all.s.list$out[[1]])[1]
 p <- dim(all.s.list$out[[1]])[2]
-stab <- c(2)
+stab <- c(1,5)
 unstab <- (1:p)[-stab]
 
 par(mfrow = c(2,2))
