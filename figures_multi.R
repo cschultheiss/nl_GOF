@@ -54,9 +54,11 @@ exp.lines <- 1.5
 cols <- ltys <-  1:4
 pchs <- c(0:2, 6)
 t <- 0
+ns <- numeric(length(flz))
 for (file in flz){
   t <- t + 1
   load(paste(folder, "/", file, sep = ""))
+  ns[t] <- simulation$n
   pv.all <- matrix(NA, ncol = nsim, nrow = 0)
   all.s.all <- array(NA, dim = c(B, 0, nsim))
   for (s in 1:ncol(all.comb)){
@@ -95,13 +97,15 @@ for (file in flz){
   }
   pi0 <- 0.01
   points(mean(pv.all[unstab,] <= pi0), mean(pv.all[stab,] <= pi0), pch = 4, col = cols[t], cex = exp.points)
-  
   points(mean(all.s.all[,unstab,]), mean(all.s.all[,stab,]), pch = pchs[t], col = cols[t], cex = exp.points)
 }
+labels <- eval(parse(text = paste("c(", paste("TeX('$n=10^", log10(ns), "$')", sep = "", collapse = ","), ")")))
+legend('bottomright', legend = labels, col = cols, lty = ltys, pch = pchs, cex = exp.text, pt.cex = 1, lwd = exp.lines)
 
 cols <- 1:4
 ltys <- 1:4
 t <- 0
+ns.p <- numeric(0)
 for (file in flz){
   t <- t + 1
   load(paste(folder, "/", file, sep = ""))
@@ -117,11 +121,13 @@ for (file in flz){
     }
   }
   if(max(pv.unstab) < 5e-2) next()
+  ns.p <- c(ns.p, simulation$n)
   np <- prod(dim(pv.unstab))
   npc <- prod(dim(pv.corr.unstab))
   if (t == 1){
     plot(c(sort(pv.unstab), 1), (1:(np + 1))/(np + 1), type = "l", xlim = c(0, 1),
-         col = cols[t], lty = ltys[t], xlab = "p", ylab = "Fn(p)", cex.lab = exp.text, lwd = exp.lines)
+         col = cols[t], lty = ltys[t], xlab = "p", ylab = "Fn(p)",
+         cex.lab = exp.text, lwd = exp.lines)
   } else {
     lines(c(sort(pv.unstab), 1), (1:(np + 1))/(np + 1), col = cols[t], lty = ltys[t], lwd = exp.lines)
   }
@@ -129,8 +135,11 @@ for (file in flz){
   lines(c(sort(pv.corr.unstab), 1), (1:(npc + 1))/(npc + 1), col = cols[t], lty = ltys[t], lwd = exp.lines)
   points(c(sort(pv.corr.unstab), 1), (1:(npc + 1))/(npc + 1), col = alpha(cols[t], 0.2))
 }
+labels.sub <- eval(parse(text = paste("c(", paste("TeX('$n=10^", log10(ns.p), "$')", sep = "", collapse = ","), ")")))
+legend('bottomright', legend = labels.sub, col = cols, lty = ltys, cex = exp.text, pt.cex = 1, lwd = exp.lines)
 
 t <- 0
+ns.p <- numeric(0)
 for (file in flz){
   t <- t + 1
   load(paste(folder, "/", file, sep = ""))
@@ -147,6 +156,7 @@ for (file in flz){
   }
   
   if(max(pv.stab) < 5e-2) next()
+  ns.p <- c(ns.p, simulation$n)
   np <- prod(dim(pv.stab))
   npc <- prod(dim(pv.corr.stab))
   if (t == 1){
@@ -159,6 +169,38 @@ for (file in flz){
   lines(c(sort(pv.corr.stab), 1), (1:(npc + 1))/(npc + 1), col = cols[t], lty = ltys[t], lwd = exp.lines)
   points(c(sort(pv.corr.stab), 1), (1:(npc + 1))/(npc + 1), col = alpha(cols[t], 0.2))
 }
+labels.sub <- eval(parse(text = paste("c(", paste("TeX('$n=10^", log10(ns.p), "$')", sep = "", collapse = ","), ")")))
+legend('bottomright', legend = labels.sub, col = cols, lty = ltys, cex = exp.text, pt.cex = 1, lwd = exp.lines)
+
+exp.text <- 1.5
+exp.points <- 1.5
+exp.lines <- 1.5
+cols <- ltys <-  1:4
+pchs <- c(0:2, 6)
+t <- 0
+ns <- numeric(length(flz))
+for (file in flz){
+  t <- t + 1
+  load(paste(folder, "/", file, sep = ""))
+  ns[t] <- simulation$n
+  all.s.all <- array(NA, dim = c(B, 0, nsim))
+  for (s in 1:ncol(all.comb)){
+    mes <- all.comb[, s]
+    all.s <- simulation[[paste(mes, collapse = "")]]$steps.out
+    all.s.all <- abind(all.s.all, all.s, along =  2)
+  }
+  ct <- apply(is.na(all.s.all), 2:3, sum)
+  
+  if (t == 1) {
+    qqplot(ct[stab,], ct[unstab,], xlim = c(0, B), ylim = c(0, B),
+           type = "l", col = cols[t], lty = ltys[t], cex.lab = exp.text, lwd = exp.lines,
+           xlab = "Well-specified", ylab = "Not well-specified")
+  } else {
+    le <- nsim * length(stab) - 1
+    lines(sort(ct[stab,]), quantile(ct[unstab,], (0:le)/le), type = "l", col = cols[t], lty = ltys[t], lwd = exp.lines)
+  }
+}
+
 
 
 exp.text <- 1.5
