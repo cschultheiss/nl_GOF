@@ -5,19 +5,19 @@ va <- function(b) 2^(b)*gamma(b + 0.5)/sqrt(pi)
 
 
 fx1 <- function(x) dnorm(x)
-f1 <- function(x) sin(2*x)
+f1 <- function(x) sin(2 * x)
 b <- 1
 scale.a <- sqrt(6)
 fx2a <- function(x) dexp(abs(x)) / 2
 fx2b <- function(x) dnorm(x, sd = 1)
-fx2 <- Vectorize(function(x) integrate(function(z, x) fx2a(x-z)*fx2b(z),-Inf,Inf,x)$value)
-fx2 <- function(x) dnorm(x)
+fx2 <- Vectorize(function(x) integrate(function(z) fx2a(x-z)*fx2b(z),-Inf,Inf)$value)
+fx2 <- function(x) dnorm(x, sd = sqrt(0.5))
 
 fx12 <- function(x1, x2) fx1(x1) * fx2(x2 -f1(x1))
 
 n <- 1e5
 x1 <- rnorm(n)
-epsa <- rnorm(n)
+epsa <- rnorm(n, sd = sqrt(0.5))
 x2 <- f1(x1) + epsa
 par(mfrow = c(1,1))
 plot(fx2, xlim = range(epsa))
