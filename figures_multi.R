@@ -3,7 +3,7 @@ require(abind)
 require(scales)
 source("split.R")
 
-folder <- "results/14-Jun-2023 11.43"
+folder <- "results/rand-setup"
 savefolder <- "Figures/rand"
 flz <- list.files(folder)
 flz <- flz[grep("results", flz)]
@@ -28,7 +28,7 @@ which.stab <- function(sel){
   } else if(sel.pos %in% c(6, 9, 10)){
     5
   } else if(sel.pos == 8){
-    c(2, 5)
+    c(3, 5)
   } else {
     error("did not find a match")
   }
@@ -124,7 +124,7 @@ for (file in flz){
     pv.unstab <- abind(pv.unstab, pv, along = 3)
     }
   }
-  # if(max(pv.unstab) < 5e-2) next()
+  if(max(pv.unstab) < 5e-2) next()
   ns.p <- c(ns.p, simulation$n)
   np <- prod(dim(pv.unstab))
   npc <- prod(dim(pv.corr.unstab))
@@ -177,10 +177,7 @@ labels.sub <- eval(parse(text = paste("c(", paste("TeX('$n=10^", log10(ns.p), "$
 legend('bottomright', legend = labels.sub, col = cols, lty = ltys, cex = exp.text, pt.cex = 1, lwd = exp.lines)
 # dev.off()
 
-par(mfrow = c(1, 3))
-mes0 <- c(2, 3, 5)
-stab <- 2:3
-unstab <- (1:p.mes)[-stab]
+par(mfrow = c(2,4))
 exp.text <- 1.5
 exp.points <- 1.5
 exp.lines <- 1.5
@@ -188,13 +185,18 @@ cols <- ltys <-  1:4
 pchs <- c(0:2, 6)
 t <- 0
 ns <- numeric(length(flz))
-for (file in flz){
-  t <- t + 1
-  load(paste(folder, "/", file, sep = ""))
-  ns[t] <- simulation$n
-  for (s in 1:ncol(all.comb)){
-    mes <- all.comb[, s]
-    if(max(abs(mes - mes0)) > 1e-5) next()
+all.comb.res <- all.comb[, c(1,5,3,6,8:10,2,4,7)]
+for (s in 1:ncol(all.comb)){
+  t <- 0
+  mes <- all.comb.res[, s]
+  stab.col <- which.stab(mes)
+  stab <- which(mes %in% stab.col)
+  unstab <- which(!(mes %in% stab.col))
+  if(length(stab.col) == p.mes) next()
+  for (file in flz){
+    load(paste(folder, "/", file, sep = ""))
+    t <- t + 1
+    ns[t] <- simulation$n
     all.s <- simulation[[paste(mes, collapse = "")]]$steps.out
     if (get.pval){
       pval.lim <- 0.05
@@ -211,27 +213,44 @@ for (file in flz){
       all.s <- aperm(all.s, c(1, 3, 2))
     }
     
+    pis <- sort(unique(c(as.matrix(pv))))
+    pis <- pis[pis < 1]
+    
+    r1 <- sapply(pis, function(pi) mean(pv[unstab,] <= pi))
+    r2 <- sapply(pis, function(pi) mean(pv[stab,] <= pi))
+    
+    if(length(stab)){
+      if (t == 1) {
+        plot(r1, r2, xlim = c(0,1), ylim = c(0,1), type = "l", col = cols[t], lty = ltys[t],
+             xlab = "False positive rate", ylab = "True positive rate", main = paste(mes, collapse = ", "),
+             cex.lab = exp.text, lwd = exp.lines)
+      } else {
+        points(r1, r2, type = "l", col = cols[t], lty = ltys[t], lwd = exp.lines)
+      }
+      pi0 <- 0.01
+      points(mean(pv[unstab,] <= pi0), mean(pv[stab,] <= pi0), pch = 4, col = cols[t], cex = exp.points)
+      points(mean(all.s[,unstab,]), mean(all.s[,stab,]), pch = pchs[t], col = cols[t], cex = exp.points)
+    abline(0,1, col = "gray", lty= 2)
+    } else {
+      if (t == 1) {
+        plot(r1, pis, xlim = c(0,1), ylim = c(0,0.5), type = "l", col = cols[t], lty = ltys[t],
+             xlab = "False positive rate", ylab = "Threshold", main = paste(mes, collapse = ", "),
+             cex.lab = exp.text, lwd = exp.lines)
+      } else {
+        points(r1, pis, type = "l", col = cols[t], lty = ltys[t], lwd = exp.lines)
+      }
+      pi0 <- 0.01
+      points(mean(pv[unstab,] <= pi0), pi0, pch = 4, col = cols[t], cex = exp.points)
+      points(mean(all.s[,unstab,]), max(pis), pch = pchs[t], col = cols[t], cex = exp.points)
+    }
   }
-  
-  pis <- sort(unique(c(as.matrix(pv))))
-  pis <- pis[pis < 1]
-  
-  r1 <- sapply(pis, function(pi) mean(pv[unstab,] <= pi))
-  r2 <- sapply(pis, function(pi) mean(pv[stab,] <= pi))
-  
-  if (t == 1) {
-    plot(r1, r2, xlim = c(0,1), ylim = c(0,1), type = "l", col = cols[t], lty = ltys[t],
-         xlab = "False positive rate", ylab = "True positive rate", cex.lab = exp.text, lwd = exp.lines)
-  } else {
-    points(r1, r2, xlim = c(0,1), ylim = c(0,1), type = "l", col = cols[t], lty = ltys[t], lwd = exp.lines)
-  }
-  pi0 <- 0.01
-  points(mean(pv[unstab,] <= pi0), mean(pv[stab,] <= pi0), pch = 4, col = cols[t], cex = exp.points)
-  points(mean(all.s[,unstab,]), mean(all.s[,stab,]), pch = pchs[t], col = cols[t], cex = exp.points)
+  if (s== 4){
+    labels <- eval(parse(text = paste("c(", paste("TeX('$n=10^", log10(ns), "$')", sep = "", collapse = ","), ")")))
+    legend('bottomright', legend = labels, col = cols, lty = ltys, pch = pchs, cex = exp.text, pt.cex = 1, lwd = exp.lines)
+  }  
 }
-abline(0,1, col = "gray", lty= 2)
-labels <- eval(parse(text = paste("c(", paste("TeX('$n=10^", log10(ns), "$')", sep = "", collapse = ","), ")")))
-legend('bottomright', legend = labels, col = cols, lty = ltys, pch = pchs, cex = exp.text, pt.cex = 1, lwd = exp.lines)
+
+
 
 
 
