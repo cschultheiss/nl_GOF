@@ -3,8 +3,8 @@ require(modeest)
 require(scales)
 source("split.R")
 
-folder <- "results/gam-sd0"
-savefolder <- "Figures/two-branchf"
+folder <- "results/het-sine"
+savefolder <- "Figures/het-sine"
 flz <- list.files(folder)
 nf <- length(flz)
 analysis <- paste(folder, "/analysis.RData", sep = "")
@@ -98,7 +98,7 @@ sim.sel <- FALSE
 add.split <- TRUE
 B <- dim(all.s.list$out[[1]])[1]
 p <- dim(all.s.list$out[[1]])[2]
-stab <- c(1,5)
+stab <- c(2)
 unstab <- (1:p)[-stab]
 
 par(mfrow = c(2,2))
@@ -256,6 +256,7 @@ for (s in 1:nf){
   pv <- apply(1 * is.na(all.s.0), 3, fisher.split)
   if(get.pval) pv[, glob] <- 0
   pis <- sort(unique(c(pv)))
+  pis <- pis[pis < 1]
   
   r1 <- sapply(pis, function(pi) mean(pv[unstab,] <= pi))
   r2 <- sapply(pis, function(pi) mean(pv[stab,] <= pi))
@@ -322,17 +323,19 @@ legend('bottomright', legend = labels.sub, col = cols, lty = ltys, cex = exp.tex
 mspe <- 1
 s <- 0
 mses <- list()
-rcor <- list()
+rcors <- list()
+rdifs <- list()
 for (file in flz){
   if(grepl("results", file)){
     s <- s + 1
     load(paste(folder, "/", file, sep = ""))
     mses[[s]] <- simulation$all[,1]
-    rcor[[s]] <- simulation$all[,2]
+    rcors[[s]] <- simulation$all[,2]
+    rdifs[[s]] <- simulation$all[,3] / ns[s]
   }
 }
-mse <- matrix(unlist(mses), ncol = nf)
-boxplot(mse/mspe, log = "y", names = labels, ylab = "Relative approximation error", cex.lab = exp.text, cex.axis =exp.text, yaxt ="n")
+rdif <- matrix(unlist(rdifs), ncol = nf)
+boxplot(rdif, log = "y", names = labels, ylab = "Average misposition", cex.lab = exp.text, cex.axis =exp.text, yaxt ="n")
 axis(side = 2)
 # dev.off()
 
