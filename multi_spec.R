@@ -23,7 +23,6 @@ multi.spec <- function(data, response = "y", B = 25, gamma = NULL, gamma.min = 0
     pred21 <- predicting(fi2, data, ind)
     pred[ind, i] <- pred21
     pred[-ind, i] <- pred12
-    
     res12 <- data[-ind, res.ind] - pred12
     res21 <- data[ind, res.ind] - pred21
     
@@ -42,7 +41,6 @@ multi.spec <- function(data, response = "y", B = 25, gamma = NULL, gamma.min = 0
     
     res[ind, i] <- res21
     res[-ind, i] <- res12
-    
     if (n /2 > 1e4){
       hs12 <- dhsic.test((res12)[1:1e4], data[-ind, -res.ind][1:1e4 ,], method = "gamma")
       hs21 <- dhsic.test((res21)[1:1e4], data[ind, -res.ind][1:1e4 ,], method = "gamma")
@@ -52,9 +50,8 @@ multi.spec <- function(data, response = "y", B = 25, gamma = NULL, gamma.min = 0
     }
     
     pval[c(i, i + B)] <- c(hs12$p.value, hs21$p.value)
-    
-    fo12 <- foci(trafo(res12), data[-ind, -res.ind])
-    fo21 <- foci(trafo(res21), data[ind, -res.ind])
+    fo12 <- foci(trafo(res12), subset(data[-ind,], select = - res.ind))
+    fo21 <- foci(trafo(res21), subset(data[ind,], select = - res.ind))
     steps12[i, fo12$selectedVar$index] <- diff(c(0, fo12$stepT))
     steps21[i, fo21$selectedVar$index] <- diff(c(0, fo21$stepT))
     sel12[i,] <- c(fo12$selectedVar$index, rep(NA, dim(data)[2] - 1 - length(fo12$selectedVar$index)))
