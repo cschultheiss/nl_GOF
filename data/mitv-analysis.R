@@ -36,6 +36,7 @@ for (go in good)
 ind <- sort(ind)
 
 mitv$y.pre <-c(NA, mitv$y[-nrow(mitv)])
+mitv$y.post <-c(mitv$y[-1], NA)
 
 # only keep observations where on hour before information is available
 mitv <- mitv[ind + 1,]
@@ -43,13 +44,35 @@ mitv <- mitv[ind + 1,]
 if(!exists("analysis"))
   analysis <- list()
 
-cols <- c("y", "hour", "dow", "temp", "rain_1h", "clouds_all")
+cols <- c("y", "hour", "dow", "temp", "rain_1h", "clouds_all", "y.post")
 name <- paste(cols[-1], collapse = "+")
-analysis[[name]] <- multi.spec(mitv[,cols], B = 25, fitting = fitxg, predicting = predxg, return.predictor = TRUE,
-                 return.residual = TRUE, return.indices = TRUE,
-                 parallel = TRUE, sockets = 5)
+analysis[[name]] <- multi.spec(mitv[,cols], B = 25, fitting = function(data, ind) fitxg(data, ind, max_depth = 6), predicting = predxg,
+                               return.predictor = TRUE, return.residual = TRUE, return.indices = TRUE, ommit.global = TRUE, 
+                               parallel = TRUE, sockets = 5)
 
-# ms <- multi.spec(data.frame(mitv), B = 25, fitting = fitxg, predicting = predxg, return.predictor = TRUE)
 
-save(analysis, file = paste("data/analysis ", format(Sys.time(), "%d-%b-%Y %H.%M"), ".RData", sep = ""))
+
+  progress <- function(n, tag) {
+    cat(paste(tag , ""))
+  }
+  
+  opts <- list(progress = progress)
+  cl<-makeSOCKcluster(5)
+  registerDoSNOW(cl)
+  temp.check <- foreach(i = 1:25, .combine = rbind,
+                        .packages = c("FOCI"), .options.snow = opts) %dorng%{
+  cow <- coo <- rep(NA, 2)
+  ind <- analysis[[1]]$indices[,i]
+  res1 <- analysis[[1]]$residual[ind,i]
+  res2 <- analysis[[1]]$residual[-ind,i]
+  cow[1] <- "temp" %in% foci(abs(res1), mitv[ind, c("hour", "dow", "temp", "y.pre")])$selectedVar$names
+  cow[2] <- "temp" %in% foci(abs(res2), mitv[-ind, c("hour", "dow", "temp", "y.pre")])$selectedVar$names
+  coo[1] <- "temp" %in% foci(abs(res1), mitv[ind, c("hour", "dow", "temp")])$selectedVar$names
+  coo[2] <- "temp" %in% foci(abs(res2), mitv[-ind, c("hour", "dow", "temp")])$selectedVar$names
+  list(cow = cow, coo = coo)
+}
+  stopCluster(cl)
+
+  
+  save(analysis, file = paste("data/analysis ", format(Sys.time(), "%d-%b-%Y %H.%M"), ".RData", sep = ""))
 
