@@ -1,6 +1,7 @@
 .Rproj.user
 .Rhistory
-.RData
+*.RData
+*.csv
 .Ruserdata
 nl_GOF.Rproj
 outfiles
