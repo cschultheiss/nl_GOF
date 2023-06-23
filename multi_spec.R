@@ -2,7 +2,7 @@ multi.spec <- function(data, response = "y", B = 25, gamma = NULL, gamma.min = 0
                        fitting = function(data, ind) gam(wrapFormula(y ~., data = data), data = data[ind, ]),
                        predicting = function(fit, data, ind) predict(fit, newdata = data[ind,]),
                        norming = NULL, trafo = abs, return.predictor = FALSE, return.residual = FALSE,
-                       parallel = FALSE, sockets = NULL){
+                       return.indices =FALSE, parallel = FALSE, sockets = NULL){
   if(parallel && is.null(sockets))
     stop("Need to provide number of sockets for parallelization")
   if(is.null(gamma)){
@@ -70,6 +70,8 @@ multi.spec <- function(data, response = "y", B = 25, gamma = NULL, gamma.min = 0
       res[-ind] <- res12
       out$res <- res
     }
+    if(return.indices)
+      out$ind <- ind
     out
   }
   
@@ -92,7 +94,6 @@ multi.spec <- function(data, response = "y", B = 25, gamma = NULL, gamma.min = 0
       one.split()
     }
   }
-  browser()
     
   pval <- c(unlist(out.splits[,"pval12"]), unlist(out.splits[,"pval21"]), use.names = FALSE) 
   quant.gamma <- quantile(pval, gamma, type = 1)/gamma
@@ -112,5 +113,6 @@ multi.spec <- function(data, response = "y", B = 25, gamma = NULL, gamma.min = 0
               steps = rbind(steps21, steps12), sel = rbind(sel21, sel12))
   if (return.predictor) out$prediction <- matrix(unlist(out.splits[, "pred"]), byrow = FALSE, nrow = n)
   if (return.residual) out$residual <- matrix(unlist(out.splits[, "res"]), byrow = FALSE, nrow = n)
+  if (return.indices) out$indices <- matrix(unlist(out.splits[, "ind"]), byrow = FALSE, nrow = ceiling(n /2))
   return(out)
 }
