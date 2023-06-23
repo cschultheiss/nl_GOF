@@ -1,8 +1,8 @@
 multi.spec <- function(data, response = "y", B = 25, gamma = NULL, gamma.min = 0.05,
                        fitting = function(data, ind) gam(wrapFormula(y ~., data = data), data = data[ind, ]),
                        predicting = function(fit, data, ind) predict(fit, newdata = data[ind,]),
-                       norming = NULL, trafo = abs, return.predictor = FALSE, return.residual = FALSE,
-                       return.indices =FALSE, parallel = FALSE, sockets = NULL){
+                       norming = NULL, ommit.global = FALSE, trafo = abs, return.predictor = FALSE, 
+                       return.residual = FALSE, return.indices = FALSE, parallel = FALSE, sockets = NULL){
   if(parallel && is.null(sockets))
     stop("Need to provide number of sockets for parallelization")
   if(is.null(gamma)){
@@ -39,13 +39,18 @@ multi.spec <- function(data, response = "y", B = 25, gamma = NULL, gamma.min = 0
       if (any(is.na(res21)))
         res21[is.na(res21)] <- 10 * max(abs(res21), na.rm = TRUE) * sign(res21u[is.na(res21)])
     }
-    if (n /2 > 1e4){
-      hs12 <- dhsic.test((res12)[1:1e4], data[-ind, -res.ind][1:1e4 ,], method = "gamma")
-      hs21 <- dhsic.test((res21)[1:1e4], data[ind, -res.ind][1:1e4 ,], method = "gamma")
+    if(!ommit.global){
+      if (n /2 > 1e4){
+        hs12 <- dhsic.test((res12)[1:1e4], data[-ind, -res.ind][1:1e4 ,], method = "gamma")
+        hs21 <- dhsic.test((res21)[1:1e4], data[ind, -res.ind][1:1e4 ,], method = "gamma")
+      } else {
+        hs12 <- dhsic.test(res12, data[-ind, -res.ind], method = "gamma")
+        hs21 <- dhsic.test(res21, data[ind, -res.ind], method = "gamma")
+      }
     } else {
-      hs12 <- dhsic.test(res12, data[-ind, -res.ind], method = "gamma")
-      hs21 <- dhsic.test(res21, data[ind, -res.ind], method = "gamma")
+      hs12 <- hs21 <- list(p.value = 1)
     }
+    
     
     fo12 <- foci(trafo(res12), subset(data[-ind,], select = - res.ind))
     fo21 <- foci(trafo(res21), subset(data[ind,], select = - res.ind))
