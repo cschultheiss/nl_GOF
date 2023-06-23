@@ -1,16 +1,16 @@
-fitxg <- function(data, ind){
+fitxg <- function(data, ind, max_depth = 2){
   n <- nrow(data)
   ind2 <- (1:n)[-ind]
   data.x <- xgb.DMatrix(as.matrix(data[,-1]), label = data[,1])
-  xgb.cv(list(max_depth = 2, nthread = 1), data = data.x, nrounds = 500, folds = list(ind, ind2), early_stopping_rounds = 3, prediction = TRUE, verbose = F)
+  xgb.cv(list(max_depth = max_depth, nthread = 1), data = data.x, nrounds = 500, folds = list(ind, ind2), early_stopping_rounds = 3, prediction = TRUE, verbose = F)
 }
 predxg <- function(fit, data, ind){
   fit$pred[ind]
 }
 
-allfitxg <- function(data){
+allfitxg <- function(data, max_depth = 2, verbose = FALSE){
   data.x <- xgb.DMatrix(as.matrix(data[,-1]), label = data[,1])
-  fi.all <- xgb.cv(list(max_depth = 2, nthread = 1), data = data.x, nrounds = 500, nfold = 2, early_stopping_rounds = 3, prediction = TRUE, verbose = F)
+  fi.all <- xgb.cv(list(max_depth = max_depth, nthread = 1), data = data.x, nrounds = 500, nfold = 2, early_stopping_rounds = 3, prediction = TRUE, verbose = verbose)
   out <- list()
   out$fitted.values <- fi.all$pred
   out$residuals <- data$y - fi.all$pred

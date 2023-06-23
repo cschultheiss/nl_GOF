@@ -89,7 +89,7 @@ multi.spec <- function(data, response = "y", B = 25, gamma = NULL, gamma.min = 0
     cl<-makeSOCKcluster(sockets)
     registerDoSNOW(cl)
     out.splits <- foreach(i = 1:B, .combine = rbind,
-                          .packages = c("mgcv", "sfsmisc", "xgboost", "FOCI", "dHSIC"), .options.snow = opts) %dorng%{
+                          .packages = c("mgcv", "sfsmisc", "xgboost", "FOCI", "dHSIC"), .export = "fitxg", .options.snow = opts) %dorng%{
       one.split()
     }
     stopCluster(cl)
