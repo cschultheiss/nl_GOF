@@ -44,7 +44,7 @@ opts <- list(progress = progress)
 
 nsim <- 200
 n.split <- 25
-cc <- close_college[,c("educ", "exper", "lwage")]
+cc <- close_college[,c("educ", "exper")]
 n <- nrow(cc)
 p <- ncol(cc)
 
