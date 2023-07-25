@@ -44,9 +44,9 @@ opts <- list(progress = progress)
 
 nsim <- 200
 n.split <- 25
-cc <- close_college[,c("educ", "exper")]
+cc <- close_college[,c("educ", "exper", "lwage")]
 n <- nrow(cc)
-p <- ncol(cc)
+p <- ncol(cc) - 1
 
 RNGkind("L'Ecuyer-CMRG")
 # make it reproducible
@@ -72,7 +72,7 @@ res<-foreach(gu = 1:nsim, .combine = rbind,
                
                eps0 <- (rchisq(nrow(cc), df = 1) - 1) / sqrt(8) * sd(cc$lwage) * sign(cc$lwage - median(cc$lwage))
                y <- cc$lwage + eps0
-               dat <- data.frame(y, cc)
+               dat <- data.frame(y, cc[, -3])
                
                steps.all <- steps.all0 <- rep(NA, p)
                fi.all <- gam(wrapFormula(y ~., data = dat), data = dat)
