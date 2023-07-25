@@ -9,3 +9,7 @@ results
 *.Rout
 .sync.ffs_db
 Figures
+*.data
+*.names
+*.tar
+data/icu
