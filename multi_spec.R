@@ -108,8 +108,8 @@ multi.spec <- function(data, response = "y", B = 25, gamma = NULL, gamma.min = 0
   pval.pre <- pmin(min(quant.gamma) * penalty, 1)
   # which.gamma <- which.min(quant.gamma)
   
-  steps12 <- matrix(unlist(out.splits[, "steps12"]), byrow = TRUE, nrow = B, dimnames = list(NULL, colnames(data)[-1]))
-  steps21 <- matrix(unlist(out.splits[, "steps21"]), byrow = TRUE, nrow = B, dimnames = list(NULL, colnames(data)[-1]))
+  steps12 <- matrix(unlist(out.splits[, "steps12"]), byrow = TRUE, nrow = B, dimnames = list(NULL, colnames(data)[-res.ind]))
+  steps21 <- matrix(unlist(out.splits[, "steps21"]), byrow = TRUE, nrow = B, dimnames = list(NULL, colnames(data)[-res.ind]))
   sel12 <- matrix(unlist(out.splits[, "sel12"]), byrow = TRUE, nrow = B)
   sel21 <- matrix(unlist(out.splits[, "sel21"]), byrow = TRUE, nrow = B)
   
