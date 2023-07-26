@@ -46,14 +46,13 @@ nsim <- 200
 n.split <- 25
 cc <- close_college[,c("educ", "exper", "lwage")]
 n <- nrow(cc)
-p <- ncol(cc) - 1
+p <- ncol(cc)
 
 RNGkind("L'Ecuyer-CMRG")
 # make it reproducible
 set.seed(42)
 seed.vec <- sample(1:10000, 1)
 print(seed.vec) # 3588
-
 
 
 # use different known seed for different n => can ommit lower sample size if wished
@@ -65,14 +64,14 @@ registerDoSNOW(cl)
 tic()
 res<-foreach(gu = 1:nsim, .combine = rbind,
              .packages = c("mgcv", "sfsmisc", "xgboost"), .options.snow = opts) %dorng%{
-               
                if(all(d != .libPaths())) .libPaths(c(.libPaths(), d))
                library(FOCI)
                library(dHSIC)
                
                eps0 <- (rchisq(nrow(cc), df = 1) - 1) / sqrt(8) * sd(cc$lwage) * sign(cc$lwage - median(cc$lwage))
-               y <- cc$lwage + eps0
-               dat <- data.frame(y, cc[, -3])
+               y.child <- cc$lwage + eps0
+               dat <- data.frame(y.child, cc)
+               colnames(dat)[4] <- "y"
                
                steps.all <- steps.all0 <- rep(NA, p)
                fi.all <- gam(wrapFormula(y ~., data = dat), data = dat)
