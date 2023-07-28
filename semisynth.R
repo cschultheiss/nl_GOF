@@ -44,12 +44,12 @@ opts <- list(progress = progress)
 
 
 nsim <- 200
-n.vec <- 10^(2:5)
 n.split <- 25
 cc <- close_college[,c("educ", "exper", "lwage")]
-n <- nrow(cc)
 p <- ncol(cc)
 y.col <- 4
+
+n.vec <- c(10^3, nrow(cc), 10^(4:5))
 
 RNGkind("L'Ecuyer-CMRG")
 # make it reproducible
