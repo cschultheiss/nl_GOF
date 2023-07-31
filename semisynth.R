@@ -112,7 +112,7 @@ for (n in n.vec) {
                  rcor <- cor(fi.all$residuals, eps0, method = "spearman")
                  rdif <- mean(abs(rank(fi.all$residuals) - rank(eps0)))
                  
-                 out <- multi.spec(dat, B = n.split, return.predictor = FALSE, return.residual = FALSE)
+                 out <- multi.spec(dat, B = n.split, trafo = function(x) x)
                  
                  out$values <- c(mse, rcor, rdif, length(div), sel.all0, sel.all, steps.all0, steps.all)
                  
