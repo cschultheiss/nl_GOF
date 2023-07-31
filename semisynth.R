@@ -47,7 +47,7 @@ nsim <- 200
 n.split <- 25
 cc <- close_college[,c("educ", "exper", "lwage")]
 p <- ncol(cc)
-y.col <- 4
+y.col <- 3
 
 n.vec <- c(10^3, nrow(cc), 10^(4:5))
 
