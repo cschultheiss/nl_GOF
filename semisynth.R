@@ -46,7 +46,7 @@ opts <- list(progress = progress)
 nsim <- 200
 n.split <- 25
 cc <- close_college[,c("educ", "exper", "lwage")]
-p <- ncol(cc)
+p <- ncol(cc) - 1
 y.col <- 3
 
 n.vec <- c(10^3, nrow(cc), 10^(4:5))
@@ -82,8 +82,10 @@ for (n in n.vec) {
                  
                  eps0 <- (rchisq(n, df = 1) - 1) / sqrt(8) * sd(cc$lwage) * sign(dat$lwage - median(cc$lwage))
                  dat$extra <- dat$lwage + eps0
+                 dat <- dat[, -3]
                  colnames(dat)[y.col] <- "y"
                  
+                
                  steps.all <- steps.all0 <- rep(NA, p)
                  fi.all <- gam(wrapFormula(y ~., data = dat), data = dat)
                  foci.all <- foci(fi.all$residuals, dat[,-y.col])
