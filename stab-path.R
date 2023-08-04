@@ -3,7 +3,7 @@ require(modeest)
 require(scales)
 source("split.R")
 
-folder <- "results/31-Jul-2023 14.58"
+folder <- "results/02-Aug-2023 09.25"
 savefolder <- "Figures/abc"
 flz <- list.files(folder)
 nf <- length(flz)
@@ -373,6 +373,21 @@ for (s in 1:nf){
   plot(ina[unstab,], ina[stab,], xlim = c(0, B), ylim = c(0, B),
        col = 1 + 2 *(ina[unstab,] <= mn(ina[stab,])) + 1 *(ina[stab,] <= mn(ina[unstab,])),
        xlab = "unstable", ylab = "stable")
+  lines(0:B, mn(0:B))
+  lines(mn(0:B), 0:B)
+}
+
+
+var1 <- 1
+var2 <- 3
+par(mfrow = c(2,2))
+for (s in 1:nf){
+  all.s.0 <- all.s.list$out[[s]][,,,1]
+  pvs <- pval.list[[s]]
+  ina <- apply(is.na(all.s.0), 2:3, sum)
+  plot(ina[var1,], ina[var2,], xlim = c(0, B), ylim = c(0, B),
+       col = 1 + pmin(1 *(ina[var1,] <= mn(ina[var2,])) + 1 *(ina[var2,] <= mn(ina[var1,])) + 1 * (pvs > pval.lim), 1),
+       xlab = "", ylab = "")
   lines(0:B, mn(0:B))
   lines(mn(0:B), 0:B)
 }
