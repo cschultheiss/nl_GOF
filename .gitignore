@@ -13,3 +13,4 @@ Figures
 *.names
 *.tar
 data/icu
+*.txt

@@ -3,8 +3,20 @@ require(modeest)
 require(scales)
 source("split.R")
 
-folder <- "results/het-sine"
-savefolder <- "Figures/het-sine"
+folder <- "results/31-Jul-2023 14.58"
+savefolder <- "Figures/abc"
+flz <- list.files(folder)
+for (file in flz){
+  n <- eval(parse(text = strsplit(strsplit(file, "n=")[[1]][2], " ")[[1]][1]))
+  o <- floor(log10(n))
+  v <- n/10^o
+  dt <- paste(strsplit(file, " ")[[1]][3:4], collapse = " ")
+  if(v > 1)
+    new.name <- paste("results n=1e+", o, "*", v, " ", dt, collapse = "", sep = "")
+  else
+    new.name <- paste("results n=1e+", o, " ", dt, collapse = "", sep = "")
+  file.rename(paste(folder, "/", file, sep = ""), paste(folder, "/", new.name, sep = ""))
+}
 flz <- list.files(folder)
 nf <- length(flz)
 analysis <- paste(folder, "/analysis.RData", sep = "")
