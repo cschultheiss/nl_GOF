@@ -6,18 +6,6 @@ source("split.R")
 folder <- "results/31-Jul-2023 14.58"
 savefolder <- "Figures/abc"
 flz <- list.files(folder)
-for (file in flz){
-  n <- eval(parse(text = strsplit(strsplit(file, "n=")[[1]][2], " ")[[1]][1]))
-  o <- floor(log10(n))
-  v <- n/10^o
-  dt <- paste(strsplit(file, " ")[[1]][3:4], collapse = " ")
-  if(v > 1)
-    new.name <- paste("results n=1e+", o, "*", v, " ", dt, collapse = "", sep = "")
-  else
-    new.name <- paste("results n=1e+", o, " ", dt, collapse = "", sep = "")
-  file.rename(paste(folder, "/", file, sep = ""), paste(folder, "/", new.name, sep = ""))
-}
-flz <- list.files(folder)
 nf <- length(flz)
 analysis <- paste(folder, "/analysis.RData", sep = "")
 test.in <- FALSE
@@ -26,6 +14,18 @@ if (file.exists(analysis)){
   nf <- nf - 1
   load(analysis)
 } else {
+  for (file in flz){
+    n <- eval(parse(text = strsplit(strsplit(file, "n=")[[1]][2], " ")[[1]][1]))
+    o <- floor(log10(n))
+    v <- n/10^o
+    dt <- paste(strsplit(file, " ")[[1]][3:4], collapse = " ")
+    if(v > 1)
+      new.name <- paste("results n=1e+", o, "*", v, " ", dt, collapse = "", sep = "")
+    else
+      new.name <- paste("results n=1e+", o, " ", dt, collapse = "", sep = "")
+    file.rename(paste(folder, "/", file, sep = ""), paste(folder, "/", new.name, sep = ""))
+  }
+  flz <- list.files(folder)
   ns <- numeric(nf)
   n.lim <- 200
   s <- 0
@@ -101,7 +101,7 @@ if (file.exists(analysis)){
   } else {
     save(all.s.list, lims.list, ns, file = analysis)
   }
-  
+  flz <- list.files(folder)
 }
 
 
@@ -110,7 +110,7 @@ sim.sel <- FALSE
 add.split <- TRUE
 B <- dim(all.s.list$out[[1]])[1]
 p <- dim(all.s.list$out[[1]])[2]
-stab <- c(2)
+stab <- c(1, 2)
 unstab <- (1:p)[-stab]
 
 par(mfrow = c(2,2))
@@ -298,7 +298,7 @@ for (s in 1:nf){
   # points(mean(which.sel.tau[,unstab]), mean(which.sel.tau[,stab]), col = 4, pch = 4)
   abline(0,1, col = "gray", lty= 2)
   
-  labels <- eval(parse(text = paste("c(", paste("TeX('$n=10^", log10(ns), "$')", sep = "", collapse = ","), ")")))
+  labels <- eval(parse(text = paste("c(", paste("TeX('$n=10^{", round(log10(ns), 2), "}$')", sep = "", collapse = ","), ")")))
   legend('bottomright', legend = labels, col = cols, lty = ltys, pch = pchs, cex = exp.text, pt.cex = 1, lwd = exp.lines)
 }
 
@@ -328,7 +328,7 @@ for (file in flz){
     # plot.ecdf(simulation$pval.corr, col = 2, add = TRUE)
   }
 }
-labels.sub <- eval(parse(text = paste("c(", paste("TeX('$n=10^", log10(ns.p), "$')", sep = "", collapse = ","), ")")))
+labels.sub <- eval(parse(text = paste("c(", paste("TeX('$n=10^{", round(log10(ns.p), 2), "}$')", sep = "", collapse = ","), ")")))
 legend('bottomright', legend = labels.sub, col = cols, lty = ltys, cex = exp.text, pt.cex = 1, lwd = exp.lines)
 # dev.off()
 
