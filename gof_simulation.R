@@ -39,42 +39,24 @@ progress <- function(n, tag) {
 
 opts <- list(progress = progress)
 
-# pot <- function(x, b) sign(x)*abs(x)^b
-# va <- function(b) 2^(b)*gamma(b + 0.5)/sqrt(pi)
-# up <- function(x2) pot((x2 + 1)*sqrt(va(b))/a, 1/b)
-# lo <- function(x2) pot((x2 - 1)*sqrt(va(b))/a, 1/b)
-# fx2 <- function(x2) 0.5 *(pnorm(up(x2)) - pnorm(lo(x2)))
-# Ex1 <- function(x2) -(dnorm(up(x2)) - dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2)))
+pot <- function(x, b) sign(x)*abs(x)^b
+va <- function(b) 2^(b)*gamma(b + 0.5)/sqrt(pi)
+up <- function(x2) pot((x2 + 1)*sqrt(va(b))/a, 1/b)
+lo <- function(x2) pot((x2 - 1)*sqrt(va(b))/a, 1/b)
+fx2 <- function(x2) 0.5 *(pnorm(up(x2)) - pnorm(lo(x2)))
+Ex1 <- function(x2) -(dnorm(up(x2)) - dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2)))
 # Vx <- function(x2) 1 - (up(x2) * dnorm(up(x2)) - lo(x2) * dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2))) -
 #   ((dnorm(up(x2)) - dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2))))^2
 
-
-fx1 <- function(x) dnorm(x)
-fx2 <- function(x) dnorm(x, sd = sqrt(0.5))
-f1 <- function(x) sin(2 * x)
-fx12 <- function(x1, x2) fx1(x1) * fx2(x2 - f1(x1))
-norm <- Vectorize(function(x2) integrate(function(x1) fx12(x1, x2), 2 * min(x1), 2 * max(x1))$value)
-m1 <- Vectorize(function(x2) integrate(function(x1) x1 * fx12(x1, x2), 2 * min(x1), 2 * max(x1))$value)
-m2 <- Vectorize(function(x2) integrate(function(x1) x1^2 * fx12(x1, x2), 2 * min(x1), 2 * max(x1))$value)
-
-n <- 1e7
-x1 <- rnorm(n)
-eps <- rnorm(n, sd = sqrt(0.5))
-x2 <- f1(x1) + eps 
-x.grid <- seq(quantile(x2, 0), quantile(x2, 1), length.out = 1000)
-norm.grid <- norm(x.grid)
-ss1 <- smooth.spline(x.grid, m1(x.grid)/norm.grid, cv = TRUE)
-ss2 <- smooth.spline(x.grid, m2(x.grid)/norm.grid, cv = TRUE)
-rm(x1, x2, eps)
-
-# Ex <- function(x1, x2, x3) 5 * x1 * Ex1(x1 * sqrt(a^2 + 1/3)) + 2.5 * x2 * x3
+Ex <- function(x1, x2, x6, x7) 0.5 * (x1^2 + x2^2 + 2) + 2 * (Ex1(x6) + pot(x7, 1.5))
 
 nsim <- 200
 n.vec <- 10^(2:5)
 n.split <- 25
-p <- 2
-b <- 1
-a <- 1
+p <- 4
+b <- 1.5
+a <- sqrt(1/3)
+
 
 RNGkind("L'Ecuyer-CMRG")
 # make it reproducible
@@ -101,20 +83,24 @@ for (n in n.vec) {
                    library(dHSIC)
                 
                 
-                 h <- rnorm(n)
-                 x1 <- f1(h) + rnorm(n, sd = sqrt(0.5))
-                 x2 <- (x1 + rnorm(n, sd = sqrt(0.5)))*sqrt(2/3)
+                 x0 <- rnorm(n)
+                 x1 <- sqrt(0.5) * (x0 + rnorm(n))
+                 x2 <- sqrt(0.5) * (x0 + rnorm(n))
+                 x3 <- sqrt(0.5) * (x1 + rnorm(n))
+                 x4 <- sqrt(0.5) * (x2 + rnorm(n))
+                 x5 <- rnorm(n)
+                 x6 <- a * pot(x5 , b)/sqrt(va(b)) + runif(n, -1, 1)
+                 x7 <- x6 + rnorm(n)
+                 y <- x3^2 + x4^2 + 2 * (x5 + pot(x7, 1.5)) + rnorm(n, sd = 1)
                  
-                 y <- (abs(x2^2) + 2)/(abs(x2^2) + 1) * (h)
+                 Eyx <- x3^2 + x4^2 + 2 * (x5 + pot(x7, 1.5))
                  
-                 m1 <- (abs(x2^2) + 2)/(abs(x2^2) + 1) * (predict(ss1, x1)$y)
-                 m2 <- ((abs(x2^2) + 2)/(abs(x2^2) + 1))^2 *
-                   (predict(ss2, x1)$y)
-                 eps0 <- (y - m1)/sqrt(m2 - m1^2)
+                 dat <- data.frame(y, x3, x4, x5, x7)
                  
-                 dat <- data.frame(y, x1, x2)
+                 eps0 <- y-Eyx
+                 
                  steps.all <- steps.all0 <- rep(NA, p)
-                 fi.all <- allfitxg.het(dat)
+                 fi.all <- gam(wrapFormula(y ~ ., data = dat), data = dat)
                  foci.all <- foci(fi.all$residuals, dat[,-1])
                  steps.all[foci.all$selectedVar$index] <- diff(c(0, foci.all$stepT))
                  sel.all <- sapply(1:p, function(j) {
@@ -132,7 +118,7 @@ for (n in n.vec) {
 
                  
                  div <- which(abs(fi.all$residuals) > (max(abs(fi.all$residuals)) - 1e-5))
-                 if(length(div) > 0){
+                 if(length(div) > 1){
                    mse <- mean((fi.all$residuals - eps0)[-div]^2)
                  } else {
                    mse <- mean((fi.all$residuals - eps0)^2)
@@ -141,9 +127,12 @@ for (n in n.vec) {
                  rcor <- cor(fi.all$residuals, eps0, method = "spearman")
                  rdif <- mean(abs(rank(fi.all$residuals) - rank(eps0)))
                  
-                 out <- multi.spec(dat, B = n.split, return.predictor = FALSE, return.residual = FALSE,
-                                   fitting = fitxg.het, predicting = predxg.het, norming = normxg.het,
-                                   trafo = function(x) x)
+                 out <- multi.spec(dat, B = n.split, return.predictor = FALSE, return.residual = TRUE)
+                 out$co0 <- cor(out$residual, eps0, method = "spearman")
+                 out$co <- cor(out$residual, method = "spearman")
+                 diag(out$co) <- NA
+                 out$co <- apply(out$co, 1, median, na.rm = TRUE)
+                 out$residual = NULL
 
                  out$values <- c(mse, rcor, rdif, length(div), sel.all0, sel.all, steps.all0, steps.all)
 
@@ -164,11 +153,15 @@ for (n in n.vec) {
   
   res.pval <- matrix(unlist(res[, "pval"]), byrow = TRUE, nrow = nsim)
   
+  res.co0 <- matrix(unlist(res[, "co0"]), byrow = TRUE, nrow = nsim)
+  
+  res.co <- matrix(unlist(res[, "co"]), byrow = TRUE, nrow = nsim)
+  
   res.pval.corr <- unlist(res[,"pval.corr"])
   
   # store output quantities, sample size, random seed, commit
   simulation <- list(all = res.val, steps.out = res.steps.out, sel.out = res.sel.out,
-                     pval = res.pval, pval.corr = res.pval.corr,
+                     pval = res.pval, pval.corr = res.pval.corr, co0 = res.co0, co = res.co,
                      n = n, r.seed = attr(res, "rng"), "commit" = commit)
   # create unique filename based on sample size and time
   resname <- paste0("results n=", n, " ", format(Sys.time(), "%d-%b-%Y %H.%M"))
