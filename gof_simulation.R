@@ -100,7 +100,7 @@ for (n in n.vec) {
                  eps0 <- y-Eyx
                  
                  steps.all <- steps.all0 <- rep(NA, p)
-                 fi.all <- gam(wrapFormula(y ~ ., data = dat), data = dat)
+                 fi.all <- allfitxg(dat)
                  foci.all <- foci(fi.all$residuals, dat[,-1])
                  steps.all[foci.all$selectedVar$index] <- diff(c(0, foci.all$stepT))
                  sel.all <- sapply(1:p, function(j) {
@@ -127,7 +127,8 @@ for (n in n.vec) {
                  rcor <- cor(fi.all$residuals, eps0, method = "spearman")
                  rdif <- mean(abs(rank(fi.all$residuals) - rank(eps0)))
                  
-                 out <- multi.spec(dat, B = n.split, return.predictor = FALSE, return.residual = TRUE)
+                 out <- multi.spec(dat, B = n.split, return.predictor = FALSE, return.residual = TRUE,
+                                   fitting = fitxg, predicting = predxg)
                  out$co0 <- cor(out$residual, eps0, method = "spearman")
                  out$co <- cor(out$residual, method = "spearman")
                  diag(out$co) <- NA
