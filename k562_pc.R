@@ -26,7 +26,7 @@ dat <- mat[["expression_matrix"]][obs, sel.col]
 colnames(dat) <- sel.var
 
 
-pcp<- pc_parallel(suffStat = list(data=dat[1:100,], ic.method="hsic.gamma"),
+pcp<- pc_parallel(suffStat = list(data=dat, ic.method="hsic.gamma"),
    indepTest = kernelCItest, alpha = 0.1, m.max = 2,
    labels = sel.var, verbose = TRUE, num.cores = 16)
 
