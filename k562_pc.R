@@ -1,4 +1,5 @@
 library(reticulate)
+require(parallel)
 require(pcalg)
 require(kpcalg)
 require(ParallelPC)
