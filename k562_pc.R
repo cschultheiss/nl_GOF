@@ -1,0 +1,43 @@
+library(reticulate)
+require(pcalg)
+require(kpcalg)
+require(ParallelPC)
+
+np <- import("numpy")
+
+mat <- np$load("data/dataset_k562_filtered.npz")
+
+obs <- which(mat[["interventions"]] == "non-targeting") 
+
+frac <- apply(mat[["expression_matrix"]][obs,] > 0, 2, mean)
+
+frac.all <- apply(mat[["expression_matrix"]] > 0, 2, mean)
+
+names <- mat[["var_names"]]
+
+all.env <- unique(mat["interventions"])
+
+sel.col <- which(frac == 1)
+n.col <- length(sel.col)
+sel.var <- names[sel.col]
+
+dat <- mat[["expression_matrix"]][obs, sel.col]
+colnames(dat) <- sel.var
+
+
+pcp<- pc_parallel(suffStat = list(data=dat[1:100,], ic.method="hsic.gamma"),
+   indepTest = kernelCItest, alpha = 0.1, m.max = 2,
+   labels = sel.var, verbose = TRUE, num.cores = 16)
+
+save(pcp, file = "results/pcm2.RData")
+
+# test <- matrix(NA, n.col, n.col)
+# for(i in 1:n.col){
+#   print(i)
+#   rows <- which(mat["interventions"] == sel.var[i])
+#   dati <- mat[["expression_matrix"]][rows,sel.col]
+#   for (j in 1:n.col){
+#    test[i,j] <- wilcox.test(dat[,j], dati[,j])$p.value
+#   }
+#   print(log10(test[i,]))
+# }
