@@ -28,9 +28,9 @@ dat <- mat[["expression_matrix"]][obs, sel.col]
 colnames(dat) <- sel.var
 
 tic()
-algo <- pc_parallel(suffStat = list(data=dat[,1:5], ic.method="hsic.gamma"),
+algo <- pc_parallel(suffStat = list(data=dat, ic.method="hsic.gamma"),
    indepTest = kernelCItest, alpha = 1e-3, m.max = 2,
-   labels = sel.var[1:5], verbose = TRUE, num.cores = 5)
+   labels = sel.var, verbose = TRUE, num.cores = 5)
 toc()
 
 save <- TRUE
