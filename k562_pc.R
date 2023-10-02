@@ -3,6 +3,7 @@ require(parallel)
 require(pcalg)
 require(kpcalg)
 require(ParallelPC)
+require(git2r)
 
 np <- import("numpy")
 
@@ -26,11 +27,20 @@ dat <- mat[["expression_matrix"]][obs, sel.col]
 colnames(dat) <- sel.var
 
 
-pcp<- pc_parallel(suffStat = list(data=dat, ic.method="hsic.gamma"),
-   indepTest = kernelCItest, alpha = 0.1, m.max = 2,
+algo <- rfci_parallel(suffStat = list(data=dat[1:100,], ic.method="hsic.gamma"),
+   indepTest = kernelCItest, alpha = 1e-3, m.max = 2,
    labels = sel.var, verbose = TRUE, num.cores = 16)
 
-save(pcp, file = "results/pcm2.RData")
+save <- TRUE
+# create save location, adjust depending on folder structure
+if (save) {
+  commit <- revparse_single(revision = "HEAD")
+  newdir <- format(Sys.time(), "%d-%b-%Y %H.%M")
+  dir.create(paste("results/", newdir, sep=""))
+  resname <- paste0("results ", format(Sys.time(), "%d-%b-%Y %H.%M"))
+  out <- list(algo = algo, commit = commit)
+  save(out, file = paste("results/", newdir, "/", resname, ".RData", sep = ""))
+}
 
 # test <- matrix(NA, n.col, n.col)
 # for(i in 1:n.col){
