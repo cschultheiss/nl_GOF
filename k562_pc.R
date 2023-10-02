@@ -27,9 +27,9 @@ dat <- mat[["expression_matrix"]][obs, sel.col]
 colnames(dat) <- sel.var
 
 
-algo <- rfci_parallel(suffStat = list(data=dat[1:100,], ic.method="hsic.gamma"),
+algo <- rfci(suffStat = list(data=dat[1:100,], ic.method="hsic.gamma"),
    indepTest = kernelCItest, alpha = 1e-3, m.max = 2,
-   labels = sel.var, verbose = TRUE, num.cores = 16)
+   labels = sel.var, verbose = TRUE)
 
 save <- TRUE
 # create save location, adjust depending on folder structure
