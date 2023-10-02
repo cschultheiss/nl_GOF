@@ -4,6 +4,7 @@ require(pcalg)
 require(kpcalg)
 require(ParallelPC)
 require(git2r)
+require(tictoc)
 
 np <- import("numpy")
 
@@ -26,10 +27,11 @@ sel.var <- names[sel.col]
 dat <- mat[["expression_matrix"]][obs, sel.col]
 colnames(dat) <- sel.var
 
-
-algo <- rfci(suffStat = list(data=dat[1:100,], ic.method="hsic.gamma"),
+tic()
+algo <- rfci(suffStat = list(data=dat[,1:5], ic.method="hsic.gamma"),
    indepTest = kernelCItest, alpha = 1e-3, m.max = 2,
-   labels = sel.var, verbose = TRUE)
+   labels = sel.var[1:5], verbose = TRUE)
+toc()
 
 save <- TRUE
 # create save location, adjust depending on folder structure
