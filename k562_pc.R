@@ -87,7 +87,7 @@ subs <- sort(c(which(ad[y,] > 1),y))
 
 test.sub <- test[subs, subs]
 diag(test.sub) <- 1
-find.structure(test.sub)
+
 
 dat.reg <- dat[,subs]
 wi <- which(colnames(dat.reg) == sel.var[y])
@@ -127,7 +127,7 @@ watchlist <- env.data
 for (wa in names(watchlist)){
   watchlist[[wa]] <- xgb.DMatrix(watchlist[[wa]][,-which(subs == y)], label = watchlist[[wa]][,which(subs == y)])
 }
-fi.out <- xgb.train(list(max_depth = 3, nthread = 1), data = data.x, nrounds = 20,
+fi.out <- xgb.train(list(max_depth = 3, nthread = 1), data = data.x, nrounds = fi.all$best_iteration,
                     verbose = TRUE, watchlist = watchlist)
 
 par(mfrow = c(3,1))
