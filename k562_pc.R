@@ -82,17 +82,28 @@ for(i in 1:n.col){
   print(log10(test[i,]))
 }
 
-y <- 16
+
+# consider potential candidate y
+for(y in 1:28){
+  subs <- sort(c(which(ad[y,] > 1),y))
+  
+  test.sub <- test[subs, subs]
+  if(length(subs) > 1)
+    cat(y, ": ", test.sub[subs == y, subs != y], "\n")
+}
+
+y <- 16 # 6, 9 also work "reasonable"
 subs <- sort(c(which(ad[y,] > 1),y))
 
 test.sub <- test[subs, subs]
+
 diag(test.sub) <- 1
 
 
 dat.reg <- dat[,subs]
 wi <- which(colnames(dat.reg) == sel.var[y])
 dat.reg <- cbind(dat.reg[,wi], dat.reg[,-wi])
-colnames(dat.reg)[1] <- "y"
+colnames(dat.reg) <- c("y", colnames(dat[,subs])[-wi])
 
 set.seed(4)
 msx <- multi.spec(data.frame(dat.reg), B = 25, return.predictor = TRUE, return.residual = TRUE,
@@ -111,7 +122,7 @@ var(c(msg$residual))
 
 
 data.x <- xgb.DMatrix(dat.reg[,-1], label = dat.reg[,1])
-fi.all <- xgb.cv(list(max_depth = 3, nthread = 1), data = data.x, nrounds = 500, nfold = 2,
+fi.all <- xgb.cv(list(max_depth = ncol(dat.reg) - 1, nthread = 1), data = data.x, nrounds = 500, nfold = 2,
                  early_stopping_rounds = 3, prediction = TRUE, verbose = TRUE)
 
 
@@ -127,7 +138,7 @@ watchlist <- env.data
 for (wa in names(watchlist)){
   watchlist[[wa]] <- xgb.DMatrix(watchlist[[wa]][,-which(subs == y)], label = watchlist[[wa]][,which(subs == y)])
 }
-fi.out <- xgb.train(list(max_depth = 3, nthread = 1), data = data.x, nrounds = fi.all$best_iteration,
+fi.out <- xgb.train(list(max_depth = ncol(dat.reg) - 1, nthread = 1), data = data.x, nrounds = fi.all$best_iteration,
                     verbose = TRUE, watchlist = watchlist)
 
 par(mfrow = c(3,1))
