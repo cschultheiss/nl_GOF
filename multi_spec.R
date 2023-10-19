@@ -2,7 +2,7 @@ multi.spec <- function(data, response = "y", B = 25, gamma = NULL, gamma.min = 0
                        fitting = function(data, ind) gam(wrapFormula(y ~., data = data), data = data[ind, ]),
                        predicting = function(fit, data, ind) predict(fit, newdata = data[ind,]),
                        norming = NULL, ommit.global = FALSE, trafo = abs, return.predictor = FALSE, 
-                       return.residual = FALSE, return.indices = FALSE, parallel = FALSE, sockets = NULL){
+                       return.residual = FALSE, return.indices = FALSE, parallel = FALSE, sockets = NULL, verbose = TRUE){
   if(parallel && is.null(sockets))
     stop("Need to provide number of sockets for parallelization")
   if(is.null(gamma)){
@@ -82,7 +82,7 @@ multi.spec <- function(data, response = "y", B = 25, gamma = NULL, gamma.min = 0
   
   if (parallel) {
     progress <- function(n, tag) {
-      cat(paste(n , ""))
+      if(verbose) cat(paste(n , ""))
     }
     
     opts <- list(progress = progress)
@@ -95,7 +95,7 @@ multi.spec <- function(data, response = "y", B = 25, gamma = NULL, gamma.min = 0
     stopCluster(cl)
   } else {
     out.splits <- foreach(i = 1:B, .combine = rbind) %do%{
-      cat(paste(i, ""))
+      if(verbose) cat(paste(i, ""))
       one.split()
     }
   }
