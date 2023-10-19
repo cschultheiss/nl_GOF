@@ -89,15 +89,8 @@ for(y in 1:28){
   
   test.sub <- test[subs, subs]
   if(length(subs) > 2 && any(test.sub[subs == y, subs != y] > 0.01)){
-    cat(y, ": ", test.sub[subs == y, subs != y], "\n")
-    next()
+    #cat(y, ": ", test.sub[subs == y, subs != y], "\n")
 
-
-    #y <- 16 # 6, 9 also work "reasonable"
-    subs <- sort(c(which(ad[y,] > 1),y))
-    
-    test.sub <- test[subs, subs]
-    
     diag(test.sub) <- 1
     
     
@@ -108,9 +101,9 @@ for(y in 1:28){
     
     set.seed(4)
     msx <- multi.spec(data.frame(dat.reg), B = 25, return.predictor = TRUE, return.residual = TRUE,
-      fitting = function(data, ind) fitxg(data, ind, ncol(data) - 1), predicting = predxg, parallel = TRUE, sockets = 5)
-    nsplit <- apply(is.na(msx$steps), 2, sum)
-    fisher.split(is.na(msx$steps))
+      fitting = function(data, ind) fitxg(data, ind, ncol(data) - 1), predicting = predxg, parallel = TRUE, sockets = 5, verbose = FALSE)
+    nsplit <- apply(!is.na(msx$steps), 2, sum)
+    pval.split <- fisher.split(is.na(msx$steps))
     pval <- test.sub[subs == y, subs != y]
     mean(msx$residual^2)
     var(c(msx$residual))
@@ -163,11 +156,15 @@ for(y in 1:28){
     }
     
 
-    out <- cbind(pval, nsplit, abs(bias))
+    out <- cbind(pval, nsplit, pval.split, abs(bias)/mean(dat.reg[, 1]))
     rownames(out) <- paste("$X_{", subs[subs != y], "}$", sep = "")
-    cat("\\multirow{", nrow(out), "}{*}{$X_{", y, "}$}", sep ="")
+    cat("\\hline", "\n", sep = "")
+    cat("\\multirow{", nrow(out), "}{*}{$X_{", y, "}$}", "\n", sep ="")
     for(i in 1:nrow(out)){
-      cat("& ", rownames(out)[i], " & ", paste(format(out[i,], digits = 2), collapse = " & "), " \\", "\\", "\n", sep = "")
+      cat("& ", rownames(out)[i], " & ", 
+          paste(c(format(out[i,1], digits = 2, scientific = TRUE), out[i,2],
+                  format(out[i,3], digits = 2, scientific = TRUE), format(out[i,4], digits = 2, scientific = TRUE)), collapse = " & "),
+          " \\", "\\", "\n", sep = "")
     }
   }
 }
