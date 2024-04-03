@@ -1,5 +1,5 @@
 multi.spec <- function(data, response = "y", B = 25, gamma = NULL, gamma.min = 0.05,
-                       fitting = function(data, ind) gam(wrapFormula(y ~., data = data), data = data[ind, ]),
+                       fitting = function(data, ind, res.ind = NULL) gam(wrapFormula(y ~., data = data), data = data[ind, ]),
                        predicting = function(fit, data, ind) predict(fit, newdata = data[ind,]),
                        norming = NULL, omit.global = FALSE, trafo = abs, return.predictor = FALSE, 
                        return.residual = FALSE, return.indices = FALSE, parallel = FALSE, sockets = NULL, verbose = TRUE){
@@ -48,8 +48,8 @@ multi.spec <- function(data, response = "y", B = 25, gamma = NULL, gamma.min = 0
   # function for one split to be repeated
   one.split <- function(){
     ind <- sample(n, ceiling(n /2)) # random split
-    fi1 <- fitting(data, ind) # fit on first half
-    fi2 <- fitting(data, (1:n)[-ind]) # fit on second half
+    fi1 <- fitting(data, ind, res.ind) # fit on first half
+    fi2 <- fitting(data, (1:n)[-ind], res.ind) # fit on second half
     pred12 <- predicting(fi1, data, -ind) # predict on the other
     pred21 <- predicting(fi2, data, ind)
     res12 <- data[-ind, res.ind] - pred12 # get residuum
