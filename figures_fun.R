@@ -206,6 +206,7 @@ figures4 <- function(folder){
 }
 
 figures6 <- function(folder){
+  # get only results
   flz <- list.files(folder)
   flz <- flz[grep("results", flz)]
   
@@ -218,103 +219,107 @@ figures6 <- function(folder){
   cols <- ltys <-  1:4
   pchs <- c(0:2, 6)
   
+  pi0 <- 1e-2 # default level for proportion test
+  pval.lim <- 0.05 # level for global test
+  get.pval <- TRUE # perform global test?
   
   load(paste(folder, "/", flz[1], sep = ""))
-  # simulation runs per sample size
   B <- dim(simulation$steps.out)[1] # number of splits used
-  p <- dim(simulation$steps.out)[2]
-  stab <- c(2)
-  unstab <- (1:p)[-stab]
+  p <- dim(simulation$steps.out)[2] # number of covariates
+  nsim <- dim(simulation$steps.out)[3] # simulation runs per sample size
+  stab <- c(2) # well-specified
+  unstab <- (1:p)[-stab] # not well-specified
   t <- 0
-  ns.p <- numeric(0)
+  ns <- numeric(length(flz)) # sample sizes
   for (file in flz){
     # loop through sample sizes
     t <- t + 1
     load(paste(folder, "/", file, sep = ""))
+    ns[t] <- simulation$n
     all.s.0 <- simulation$steps.out
-    pi0 <- 1e-2
-    
+
     if (get.pval){
-      pval.lim <- 0.05
-      pval <- simulation$pval.corr
-      glob <- which(pval > pval.lim)
-      glob.s <- t(simulation$pval[,c((B/2 + 1) : B, 1 : (B/2))]) > pval.lim
+      glob <- which(simulation$pval.corr > pval.lim) # global test not rejected
+      glob.s <- t(simulation$pval[,c((B/2 + 1) : B, 1 : (B/2))]) > pval.lim # global test not rejected on single splits
     }
     
-    pv <- apply(1 * is.na(all.s.0), 3, fisher.split)
-    if(get.pval) pv[, glob] <- 0
-    pis <- sort(unique(c(pv)))
+    pv <- apply(1 * is.na(all.s.0), 3, fisher.split) # proportion test
+    if(get.pval) pv[, glob] <- 0 # set to 0 if global test not rejected
+    pis <- sort(unique(c(pv))) # implicit parameter for ROC
     pis <- pis[pis < 1]
     
-    r1 <- sapply(pis, function(pi) mean(pv[unstab,] <= pi))
-    r2 <- sapply(pis, function(pi) mean(pv[stab,] <= pi))
+    r1 <- sapply(pis, function(pi) mean(pv[unstab,] <= pi)) # FPR
+    r2 <- sapply(pis, function(pi) mean(pv[stab,] <= pi)) # TPR
     if (t == 1) {
+      # plot ROC
       plot(r1, r2, xlim = c(0,1), ylim = c(0,1), type = "l", col = cols[t], lty = ltys[t],
            xlab = "False positive rate", ylab = "True positive rate", cex.lab = exp.text, lwd = exp.lines)
     } else {
       points(r1, r2, xlim = c(0,1), ylim = c(0,1), type = "l", col = cols[t], lty = ltys[t], lwd = exp.lines)
     }
     
+    # add default level
     points(mean(pv[unstab,] <= pi0), mean(pv[stab,] <= pi0), pch = 4, col = cols[t], cex = exp.points)
     
-    t1.mat <- is.na(all.s.0[,unstab,])
-    p.mat <- is.na(all.s.0[,stab,])
+    t1.mat <- is.na(all.s.0[,unstab,]) # type 1 for single splits
+    p.mat <- is.na(all.s.0[,stab,]) # power for single splits
     if (get.pval){
       if(length(dim(t1.mat)) > 2)
         t1.mat <- aperm(t1.mat, c(1, 3, 2))
       if(length(dim(p.mat)) > 2)
         p.mat <- aperm(p.mat, c(1, 3, 2))
+      # count as positive if global test is not rejected
       t1.mat <- pmax(t1.mat, glob.s)
       p.mat <- pmax(p.mat, glob.s)
     }
-    
-    
+    # performance on single splits
     points(mean(t1.mat), mean(p.mat), pch = pchs[t], col = cols[t], cex = exp.points)
-    # points(mean(which.sel.tau[,unstab]), mean(which.sel.tau[,stab]), col = 4, pch = 4)
+
     abline(0,1, col = "gray", lty= 2)
   }
   labels <- eval(parse(text = paste("c(", paste("TeX('$n=10^", log10(ns), "$')", sep = "", collapse = ","), ")")))
   legend('bottomright', legend = labels, col = cols, lty = ltys, pch = pchs, cex = exp.text, pt.cex = 1, lwd = exp.lines)
   
-  # par(mfrow = c(1,1))
+  # plotting parameters
   cols <- 1:4
   ltys <- 1:4
   s <- 0
-  ns.p <- numeric(0)
+  ns.p <- numeric(0) # sample sizes
   for (file in flz){
     if(grepl("results", file)){
       s <- s + 1
       load(paste(folder, "/", file, sep = ""))
-      if(max(simulation$pval) < 1e-3) next()
+      if(max(simulation$pval) < 1e-3) next() # stop if only low p-values
       ns.p <- c(ns.p, simulation$n)
-      np <- prod(dim(simulation$pval))
-      npc <- length(simulation$pval.corr)
+      np <- prod(dim(simulation$pval)) # total number of p-values
+      npc <- length(simulation$pval.corr) # total number of combined p-values
       if (simulation$n == min(ns)){
+        # plot ECDF of p-values
         plot(c(sort(simulation$pval), 1), (1:(np + 1))/(np + 1), type = "l", xlim = c(0, 1),
              col = cols[s], lty = ltys[s], xlab = "p", ylab = "Fn(p)", cex.lab = exp.text, lwd = exp.lines)
       } else {
         lines(c(sort(simulation$pval), 1), (1:(np + 1))/(np + 1), col = cols[s], lty = ltys[s], lwd = exp.lines)
       }
       
+      # add ECDF of combined p-values
       lines(c(sort(simulation$pval.corr), 1), (1:(npc + 1))/(npc + 1), col = cols[s], lty = ltys[s], lwd = exp.lines)
       points(c(sort(simulation$pval.corr), 1), (1:(npc + 1))/(npc + 1), col = alpha(cols[s], 0.2))
-      # plot.ecdf(simulation$pval, xlim = c(0,1), main = paste("10^", log10(simulation$n), sep = ""))
-      # plot.ecdf(simulation$pval.corr, col = 2, add = TRUE)
     }
   }
   labels.sub <- eval(parse(text = paste("c(", paste("TeX('$n=10^", log10(ns.p), "$')", sep = "", collapse = ","), ")")))
   legend('bottomright', legend = labels.sub, col = cols, lty = ltys, cex = exp.text, pt.cex = 1, lwd = exp.lines)
   
   s <- 0
-  rdifs <- list()
+  rdif <- matrix(NA, nsim, length(flz))
   for (file in flz){
-    if(grepl("results", file)){
-      s <- s + 1
-      load(paste(folder, "/", file, sep = ""))
-      rdifs[[s]] <- simulation$all[,3] / ns[s]
-    }
+    # loop through samples sizes
+    s <- s + 1
+    load(paste(folder, "/", file, sep = ""))
+    # get average misposition
+    rdif[,s] <- simulation$all[,3] / simulation$n
+
   }
-  rdif <- matrix(unlist(rdifs), ncol = nf)
+  # boxplot group by columns, i.e., sample sizes
   boxplot(rdif, log = "y", names = labels, ylab = "Average misposition", cex.lab = exp.text, cex.axis =exp.text, yaxt ="n")
   axis(side = 2)
 }
