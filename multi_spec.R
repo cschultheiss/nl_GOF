@@ -2,7 +2,8 @@ multi.spec <- function(data, response = "y", B = 25, gamma = NULL, gamma.min = 0
                        fitting = function(data, ind, res.ind = NULL) gam(wrapFormula(y ~., data = data), data = data[ind, ]),
                        predicting = function(fit, data, ind) predict(fit, newdata = data[ind,]),
                        norming = NULL, omit.global = FALSE, trafo = abs, return.predictor = FALSE, 
-                       return.residual = FALSE, return.indices = FALSE, parallel = FALSE, sockets = NULL, verbose = TRUE){
+                       return.residual = FALSE, return.indices = FALSE, verbose = TRUE, parallel = FALSE, sockets = NULL, 
+                       export.packages = c("mgcv", "sfsmisc", "xgboost", "FOCI", "dHSIC")){
   
   # function to assess well-specification
   # Input
@@ -19,9 +20,10 @@ multi.spec <- function(data, response = "y", B = 25, gamma = NULL, gamma.min = 0
   # return.predictor (boolean): return the estimated conditional mean?
   # return.residual (boolean): return the estimated residuals?
   # return.indices (boolean): return the random splits?
+  # verbose (boolean): print intermediate information?
   # parallel (boolean): apply parralelization?
   # sockets (integer): number of sockets for parallelization
-  # verbose (boolean): print intermediate information?
+  # export.packages (character, vector): packages needed in sockets
   # Output
   # pval.corr (numeric): combined p-value
   # pval (numeric, vector): individual p-values
@@ -122,7 +124,7 @@ multi.spec <- function(data, response = "y", B = 25, gamma = NULL, gamma.min = 0
     cl<-makeSOCKcluster(sockets)
     registerDoSNOW(cl)
     out.splits <- foreach(i = 1:B, .combine = rbind,
-                          .packages = c("mgcv", "sfsmisc", "xgboost", "FOCI", "dHSIC"), .export = "fitxg", .options.snow = opts) %dorng%{
+                          .packages = export.packages, .options.snow = opts) %dorng%{
       one.split()
     }
     stopCluster(cl)
