@@ -1,8 +1,6 @@
 library(reticulate)
 require(parallel)
 require(pcalg)
-require(kpcalg)
-require(ParallelPC)
 require(git2r)
 require(tictoc)
 require(doRNG)
@@ -69,6 +67,29 @@ for (j in 1:n.col){
     stop("Non matching names")
 }
 
+foci.var <- function(j){
+  focij <- foci(dat[,j], dat[,-j])
+  sel <- focij$selectedVar$index
+  sel[sel >= j] <- sel[sel >= j ] + 1
+  if((j == 15 && 1 %in% sel) || (j == 24 & ! (6 %in% sel))){
+    warning("Call again for reproducibility at j=", j)
+    return(foci.var(j))
+  }
+  if (any(focij$selectedVar$names != sel.var[sel])) 
+    stop("Non matching names")
+  ret <- rep(0, ncol(dat))
+  ret[sel] <- 1
+  return(ret)
+}
+
+
+foc.mat <- foreach(i = 1:n.col, .combine = rbind) %do%{
+    cat(paste(i, ""))
+    foci.var(i)
+}
+
+
+
 ad <- foc.mat + t(foc.mat)
 
 test <- matrix(NA, n.col, n.col)
@@ -79,12 +100,11 @@ for(i in 1:n.col){
   for (j in 1:n.col){
    test[i,j] <- wilcox.test(dat[,j], dati[,j])$p.value
   }
-  print(log10(test[i,]))
 }
 
 
 # consider potential candidate y
-for(y in 1:28){
+for(y in 1:n.col){
   subs <- sort(c(which(ad[y,] > 1),y))
   
   test.sub <- test[subs, subs]
@@ -101,7 +121,7 @@ for(y in 1:28){
     
     set.seed(4)
     msx <- multi.spec(data.frame(dat.reg), B = 25, return.predictor = TRUE, return.residual = TRUE,
-      fitting = function(data, ind) fitxg(data, ind, ncol(data) - 1), predicting = predxg, parallel = TRUE, sockets = 5, verbose = FALSE)
+      fitting = function(data, ind, res.ind) fitxg(data, ind, res.ind, ncol(data) - 1), predicting = predxg, parallel = TRUE, sockets = 5, verbose = FALSE)
     nsplit <- apply(!is.na(msx$steps), 2, sum)
     pval.split <- fisher.split(is.na(msx$steps))
     pval <- test.sub[subs == y, subs != y]
