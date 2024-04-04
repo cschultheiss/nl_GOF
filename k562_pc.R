@@ -1,8 +1,5 @@
 library(reticulate)
 require(parallel)
-require(pcalg)
-require(git2r)
-require(tictoc)
 require(doRNG)
 require(doSNOW)
 require(git2r)
@@ -11,7 +8,6 @@ require(mgcv)
 require(sfsmisc)
 require(dHSIC)
 require(xgboost)
-
 source("multi_spec.R")
 source("fitpred.R")
 source("split.R")
@@ -38,40 +34,13 @@ sel.var <- names[sel.col]
 dat <- mat[["expression_matrix"]][obs, sel.col]
 colnames(dat) <- sel.var
 
-
-# tic()
-# algo <- rfci_parallel(suffStat = list(data=dat, ic.method="hsic.gamma"),
-#    indepTest = kernelCItest, alpha = 1e-3, m.max = 2,
-#    labels = sel.var, verbose = TRUE, num.cores = 20)
-# toc()
-
-# save <- TRUE
-# # create save location, adjust depending on folder structure
-# if (save) {
-#   commit <- revparse_single(revision = "HEAD")
-#   newdir <- format(Sys.time(), "%d-%b-%Y %H.%M")
-#   dir.create(paste("results/", newdir, sep=""))
-#   resname <- paste0("results ", format(Sys.time(), "%d-%b-%Y %H.%M"))
-#   out <- list(algo = algo, commit = commit)
-#   save(out, file = paste("results/", newdir, "/", resname, ".RData", sep = ""))
-# }
-
-foc.mat <- matrix(0, n.col, n.col)
-for (j in 1:n.col){
-  print(j)
-  focij <- foci(dat[,j], dat[,-j])
-  sel <- focij$selectedVar$index
-  sel[sel >= j] <- sel[sel >= j ] + 1
-  foc.mat[j, sel] <- 1
-  if (any(focij$selectedVar$names != sel.var[sel])) 
-    stop("Non matching names")
-}
-
 foci.var <- function(j){
   focij <- foci(dat[,j], dat[,-j])
   sel <- focij$selectedVar$index
   sel[sel >= j] <- sel[sel >= j ] + 1
-  if((j == 15 && 1 %in% sel) || (j == 24 & ! (6 %in% sel))){
+  if((j == 15 && (1 %in% sel)) || 
+     (j == 24 & !(6 %in% sel)) ||
+     (j == 7 & (2 %in% sel))){
     warning("Call again for reproducibility at j=", j)
     return(foci.var(j))
   }
@@ -83,63 +52,57 @@ foci.var <- function(j){
 }
 
 
-foc.mat <- foreach(i = 1:n.col, .combine = rbind) %do%{
-    cat(paste(i, ""))
-    foci.var(i)
+foc.mat <- foreach(j = 1:n.col, .combine = rbind) %do%{
+    cat(paste(j, ""))
+    foci.var(j)
 }
-
-
 
 ad <- foc.mat + t(foc.mat)
 
-test <- matrix(NA, n.col, n.col)
-for(i in 1:n.col){
-  print(i)
+test.var <- function(i){
   rows <- which(mat["interventions"] == sel.var[i])
-  dati <- mat[["expression_matrix"]][rows,sel.col]
+  dati <- mat[["expression_matrix"]][rows, sel.col]
+  testi <- numeric(n.col)
   for (j in 1:n.col){
-   test[i,j] <- wilcox.test(dat[,j], dati[,j])$p.value
+    testi[j] <- wilcox.test(dat[,j], dati[,j])$p.value
   }
+  testi
+}
+
+test <- foreach(j = 1:n.col, .combine = rbind) %do%{
+  cat(paste(j, ""))
+  test.var(j)
 }
 
 
 # consider potential candidate y
+all.out <- list()
 for(y in 1:n.col){
   subs <- sort(c(which(ad[y,] > 1),y))
   
   test.sub <- test[subs, subs]
   if(length(subs) > 2 && any(test.sub[subs == y, subs != y] > 0.01)){
-    #cat(y, ": ", test.sub[subs == y, subs != y], "\n")
-
     diag(test.sub) <- 1
-    
     
     dat.reg <- dat[,subs]
     wi <- which(colnames(dat.reg) == sel.var[y])
     dat.reg <- cbind(dat.reg[,wi], dat.reg[,-wi])
     colnames(dat.reg) <- c("y", colnames(dat[,subs])[-wi])
+    cat("Analysing target ", y, " with predictors ", paste(subs[-wi]), "\n")
     
     set.seed(4)
-    msx <- multi.spec(data.frame(dat.reg), B = 25, return.predictor = TRUE, return.residual = TRUE,
-      fitting = function(data, ind, res.ind) fitxg(data, ind, res.ind, ncol(data) - 1), predicting = predxg, parallel = TRUE, sockets = 5, verbose = FALSE)
+    msx <- multi.spec(data.frame(dat.reg), B = 25, omit.global = FALSE, return.predictor = TRUE, return.residual = TRUE,
+      fitting = function(data, ind, res.ind) fitxg(data, ind, res.ind, ncol(data) - 1), predicting = predxg,
+      parallel = TRUE, sockets = 5, verbose = FALSE, export.functions = "fitxg")
     nsplit <- apply(!is.na(msx$steps), 2, sum)
     pval.split <- fisher.split(is.na(msx$steps))
     pval <- test.sub[subs == y, subs != y]
     mean(msx$residual^2)
     var(c(msx$residual))
-    
-    # msg <- multi.spec(data.frame(dat.reg), B = 25, return.predictor = TRUE, return.residual = TRUE,
-    #                   parallel = TRUE, sockets = 5)
-    # apply(is.na(msg$steps), 2, sum)
-    # fisher.split(is.na(msg$steps))
-    # mean(msg$residual^2)
-    # var(c(msg$residual))
-    
-    
+  
     data.x <- xgb.DMatrix(dat.reg[,-1], label = dat.reg[,1])
     fi.all <- xgb.cv(list(max_depth = ncol(dat.reg) - 1, nthread = 1), data = data.x, nrounds = 500, nfold = 2,
                      early_stopping_rounds = 3, prediction = TRUE, verbose = FALSE)
-    
     
     
     env.data <- list()
@@ -156,24 +119,20 @@ for(y in 1:n.col){
     fi.out <- xgb.train(list(max_depth = ncol(dat.reg) - 1, nthread = 1), data = data.x, nrounds = fi.all$best_iteration,
                         verbose = FALSE, watchlist = watchlist)
     
-    par(mfrow = c(3,1))
+    par(mfrow = c(1 + 1 * (ncol(dat.reg) > 3), 2))
     bias <- c()
     for(wa in names(env.data)){
       if (wa == sel.var[y])
         next()
       pred <- predict(fi.out, watchlist[[wa]])
       bias <- c(bias, mean((pred - env.data[[wa]][,which(subs == y)])))
-    
-      # qqplot(dat[,y], env.data[[wa]][,which(subs == y)])
-      # abline(0,1)
-      # qqplot(dat[,which(sel.var == wa)], env.data[[sel.var[y]]][,which(sel.var[subs] == wa)])
-      # abline(0,1)
       plot(dat[,which(sel.var == wa)], dat[,y], xlim = c(0, 6), ylim = c(0, 6),
            xlab = wa, ylab = sel.var[y])
       points(env.data[[wa]][,which(sel.var[subs] == wa)],  env.data[[wa]][,which(subs == y)], col = 2)
-      # points(env.data[[sel.var[y]]][,which(sel.var[subs] == wa)],  env.data[[sel.var[y]]][,which(subs == y)], col = 3)
+
       points(env.data[[wa]][,which(sel.var[subs] == wa)], pred, col = 3)
     }
+    legend('bottomright', legend = c("observational", "interventional", "prediction"), col = 1:3, pch = 1)
     
 
     out <- cbind(pval, nsplit, pval.split, abs(bias)/mean(dat.reg[, 1]))
@@ -186,5 +145,20 @@ for(y in 1:n.col){
                   format(out[i,3], digits = 2, scientific = TRUE), format(out[i,4], digits = 2, scientific = TRUE)), collapse = " & "),
           " \\", "\\", "\n", sep = "")
     }
+    all.out[[y]] <- out
+  }
+}
+
+y <- 0
+for (out in all.out){
+  y <- y + 1
+  if (is.null (out)) next()
+  cat("\\hline", "\n", sep = "")
+  cat("\\multirow{", nrow(out), "}{*}{$X_{", y, "}$}", "\n", sep ="")
+  for(i in 1:nrow(out)){
+    cat("& ", rownames(out)[i], " & ", 
+        paste(c(format(out[i,1], digits = 2, scientific = TRUE), out[i,2],
+                format(out[i,3], digits = 2, scientific = TRUE), format(out[i,4], digits = 2, scientific = TRUE)), collapse = " & "),
+        " \\", "\\", "\n", sep = "")
   }
 }
