@@ -39,15 +39,6 @@ progress <- function(n, tag) {
 
 opts <- list(progress = progress)
 
-# pot <- function(x, b) sign(x)*abs(x)^b
-# va <- function(b) 2^(b)*gamma(b + 0.5)/sqrt(pi)
-# up <- function(x2) pot((x2 + 1)*sqrt(va(b))/a, 1/b)
-# lo <- function(x2) pot((x2 - 1)*sqrt(va(b))/a, 1/b)
-# fx2 <- function(x2) 0.5 *(pnorm(up(x2)) - pnorm(lo(x2)))
-# Ex1 <- function(x2) -(dnorm(up(x2)) - dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2)))
-# Vx <- function(x2) 1 - (up(x2) * dnorm(up(x2)) - lo(x2) * dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2))) -
-#   ((dnorm(up(x2)) - dnorm(lo(x2)))/(pnorm(up(x2)) - pnorm(lo(x2))))^2
-
 
 fx1 <- function(x) dnorm(x)
 fx2 <- function(x) dnorm(x, sd = sqrt(0.5))
@@ -178,7 +169,6 @@ for (n in n.vec) {
   print(apply(res.val[,1:4], 2, mean))
   print(apply(!is.na(res.val[,(4 + 1) : (4 + 2 * p)]), 2, mean))
   for (j in 1:p){
-    # print(paste(j, ": ", sum(res.sel.in == j, na.rm = TRUE), sep = ""))
     print(paste(j, ": ", sum(res.sel.out == j, na.rm = TRUE), sep = ""))
   }
 }
