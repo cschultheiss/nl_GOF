@@ -120,9 +120,10 @@ multi.spec <- function(data, response = "y", B = 25, gamma = NULL, gamma.min = 0
     
     opts <- list(progress = progress)
     cl<-makeSOCKcluster(sockets)
+    clusterExport(cl, export.functions)
     registerDoSNOW(cl)
     out.splits <- foreach(i = 1:B, .combine = rbind,
-                          .packages = export.packages, .export = export.functions, .options.snow = opts) %dorng%{
+                          .packages = export.packages, .options.snow = opts) %dorng%{
       one.split()
     }
     stopCluster(cl)
