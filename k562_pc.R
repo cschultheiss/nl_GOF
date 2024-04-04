@@ -14,6 +14,14 @@ source("split.R")
 np <- import("numpy")
 
 table5 <- function(file, foc.mat = NULL){
+  # wrapper function to generate the table from Section 5
+  # Input
+  # file (character): location where the file is stored
+  # foc.mat (numeric, matrix): estimated Markov blanket of each covariate, can be pregiven to save time
+  # Output
+  # analysis (numeric, matrix): output as in the table
+  # foc.mat (numeric, matrix): estimated Markov blanket of each covariate, mainly relevant if not pregiven
+  
   mat <- np$load(file) # load the preprocessed data
   obs <- which(mat[["interventions"]] == "non-targeting") # find observational data
   frac <- apply(mat[["expression_matrix"]][obs,] > 0, 2, mean) # active fraction per variables
@@ -59,35 +67,29 @@ table5 <- function(file, foc.mat = NULL){
   
   ad <- foc.mat + t(foc.mat) # check both directions, if it is in Markov boundary, this should be 2
   
-  test.var <- function(i){
+  test.var <- function(i, preds){
+    if (length(preds) < 1) return(NULL)
+
     # see if this variable affects others
     rows <- which(mat["interventions"] == sel.var[i]) # environment where this variable is intervened on
     dati <- mat[["expression_matrix"]][rows, sel.col]
-    testi <- numeric(n.col)
-    for (j in 1:n.col){
-      testi[j] <- wilcox.test(dat[,j], dati[,j])$p.value # compare distributions
+    testi <- numeric(length(preds))
+    for (j in 1:length(preds)){
+      testi[j] <- wilcox.test(dat[,preds[j]], dati[,preds[j]])$p.value # compare distributions
     }
     testi
   }
-  cat("\n Mann-Whitney U tests \n")
-  test <- foreach(j = 1:n.col, .combine = rbind) %do%{
-    cat(paste(j, ""))
-    test.var(j)
-  }
-  
+
   
   analyse.var <- function(y){
-    subs <- sort(c(which(ad[y,] > 1), y)) # covariates which seem to be in Markov boundary
-    test.sub <- test[subs, subs]
-    
-    if(length(subs) > 2 && any(test.sub[subs == y, subs != y] > 0.01)){ # not all are descendants
-      diag(test.sub) <- 1
-      
-      dat.reg <- dat[,subs] # the data we work with
+    preds <- which(ad[y, ] > 1)# covariates which seem to be in Markov boundary
+    pval <- test.var(y, preds) # Mann-Whitney U tests
+    if(length(preds) > 1 && any(pval > 0.01)){ # not all are descendants
+      dat.reg <- dat[,c(y, preds)] # the data we work with
       wi <- which(colnames(dat.reg) == sel.var[y]) # find target position
       dat.reg <- cbind(dat.reg[,wi], dat.reg[,-wi]) # move target to first position
-      colnames(dat.reg) <- c("y", colnames(dat[,subs])[-wi]) # call it y
-      cat("Analysing target ", y, " with predictors ", paste(subs[-wi]), "\n")
+      colnames(dat.reg) <- c("y", colnames(dat[,preds])) # call it y
+      cat("Analysing target ", y, " with predictors ", paste(preds), "\n")
       
       set.seed(4)
       # assess well-specification
@@ -96,7 +98,6 @@ table5 <- function(file, foc.mat = NULL){
                         parallel = TRUE, sockets = 5, verbose = FALSE, export.functions = "fitxg")
       nsplit <- apply(!is.na(msx$steps), 2, sum) # how often is it not selected by FOCI
       pval.split <- fisher.split(is.na(msx$steps)) # proportion test
-      pval <- test.sub[subs == y, subs != y] # Mann-Whitney-U test
       
       data.x <- xgb.DMatrix(dat.reg[,-1], label = dat.reg[,1])
       # estimate conditional mean on observational data
@@ -104,17 +105,17 @@ table5 <- function(file, foc.mat = NULL){
                        early_stopping_rounds = 3, prediction = TRUE, verbose = FALSE)
       
       env.data <- list()
-      for (su in subs){
+      for (su in preds){
         # find the data where the predictors are intervened on
         rows <- which(mat["interventions"] == sel.var[su])
-        dati <- mat[["expression_matrix"]][rows, sel.col[subs]]
+        dati <- mat[["expression_matrix"]][rows, sel.col[c(y, preds)]]
         env.data[[sel.var[su]]] <- dati
       }
       
       watchlist <- env.data
       for (wa in names(watchlist)){
         # turn data to xgb compatible format
-        watchlist[[wa]] <- xgb.DMatrix(watchlist[[wa]][,-which(subs == y)], label = watchlist[[wa]][,which(subs == y)])
+        watchlist[[wa]] <- xgb.DMatrix(watchlist[[wa]][,-1], label = watchlist[[wa]][,1])
       }
       # fit again for pre-defined rounds, evaluate on other environments
       fi.out <- xgb.train(list(max_depth = ncol(dat.reg) - 1, nthread = 1), data = data.x, nrounds = fi.all$best_iteration,
@@ -126,18 +127,18 @@ table5 <- function(file, foc.mat = NULL){
         if (wa == sel.var[y])
           next()
         pred <- predict(fi.out, watchlist[[wa]]) # predict on environment
-        bias <- c(bias, mean((pred - env.data[[wa]][,which(subs == y)]))) # calculate bias
+        bias <- c(bias, mean((pred - env.data[[wa]][,1]))) # calculate bias
         plot(dat[,which(sel.var == wa)], dat[,y], xlim = c(0, 6), ylim = c(0, 6),
              xlab = wa, ylab = sel.var[y]) # observational data
-        points(env.data[[wa]][,which(sel.var[subs] == wa)],  env.data[[wa]][,which(subs == y)], col = 2) # interventional data
+        points(env.data[[wa]][,which(sel.var[preds] == wa) + 1],  env.data[[wa]][,1], col = 2) # interventional data
         
-        points(env.data[[wa]][,which(sel.var[subs] == wa)], pred, col = 3) # prediction
+        points(env.data[[wa]][,which(sel.var[preds] == wa) + 1], pred, col = 3) # prediction
       }
       legend('bottomright', legend = c("observational", "interventional", "prediction"), col = 1:3, pch = 1)
       
       
       out <- cbind(pval, nsplit, pval.split, abs(bias)/mean(dat.reg[, 1])) # store to vector
-      rownames(out) <- paste("$X_{", subs[subs != y], "}$", sep = "")
+      rownames(out) <- paste("$X_{", preds, "}$", sep = "")
       # print LaTeX format
       cat("\\hline", "\n", sep = "")
       cat("\\multirow{", nrow(out), "}{*}{$X_{", y, "}$}", "\n", sep ="")
@@ -152,7 +153,6 @@ table5 <- function(file, foc.mat = NULL){
       NULL
     }
   }
-  
   cat("\n")
   # consider potential candidate y
   all.out <- list()
@@ -174,7 +174,7 @@ table5 <- function(file, foc.mat = NULL){
           " \\", "\\", "\n", sep = "")
     }
   }
-  return(list(all.out, foc.mat))
+  return(list(analysis = all.out, foc.mat = foc.mat))
 }
 
 
