@@ -24,6 +24,7 @@ multi.spec <- function(data, response = "y", B = 25, gamma = NULL, gamma.min = 0
   # parallel (boolean): apply parralelization?
   # sockets (integer): number of sockets for parallelization
   # export.packages (character, vector): packages needed in sockets
+  # export.functions (character, vector): functions needed in sockets
   # Output
   # pval.corr (numeric): combined p-value
   # pval (numeric, vector): individual p-values
