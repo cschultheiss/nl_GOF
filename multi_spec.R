@@ -3,7 +3,7 @@ multi.spec <- function(data, response = "y", B = 25, gamma = NULL, gamma.min = 0
                        predicting = function(fit, data, ind) predict(fit, newdata = data[ind,]),
                        norming = NULL, omit.global = FALSE, trafo = abs, return.predictor = FALSE, 
                        return.residual = FALSE, return.indices = FALSE, verbose = TRUE, parallel = FALSE, sockets = NULL, 
-                       export.packages = c("mgcv", "sfsmisc", "xgboost", "FOCI", "dHSIC")){
+                       export.packages = c("mgcv", "sfsmisc", "xgboost", "FOCI", "dHSIC"), export.functions = NULL) {
   
   # function to assess well-specification
   # Input
@@ -29,7 +29,6 @@ multi.spec <- function(data, response = "y", B = 25, gamma = NULL, gamma.min = 0
   # pval (numeric, vector): individual p-values
   # steps (numeric, matrix): stepsize corresponding to that variable
   # sel (integer, matrix): order of variable selection
-  
   if(parallel && is.null(sockets))
     stop("Need to provide number of sockets for parallelization")
   if(is.null(gamma)){
@@ -113,7 +112,6 @@ multi.spec <- function(data, response = "y", B = 25, gamma = NULL, gamma.min = 0
       out$ind <- ind
     out
   }
-  
   # apply multiple times
   if (parallel) {
     progress <- function(n, tag) {
@@ -124,7 +122,7 @@ multi.spec <- function(data, response = "y", B = 25, gamma = NULL, gamma.min = 0
     cl<-makeSOCKcluster(sockets)
     registerDoSNOW(cl)
     out.splits <- foreach(i = 1:B, .combine = rbind,
-                          .packages = export.packages, .options.snow = opts) %dorng%{
+                          .packages = export.packages, .export = export.functions, .options.snow = opts) %dorng%{
       one.split()
     }
     stopCluster(cl)
