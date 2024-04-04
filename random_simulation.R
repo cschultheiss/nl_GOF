@@ -10,6 +10,7 @@ require(FOCI)
 require(mgcv)
 require(sfsmisc)
 require(dHSIC)
+require(xgboost)
 
 
 source("multi_spec.R")
@@ -100,7 +101,7 @@ for (n in n.vec) {
   registerDoSNOW(cl)
   tic()
   res<-foreach(gu = 1:nsim, .combine = rbind,
-               .packages = c("mgcv", "sfsmisc"), .options.snow = opts) %dorng%{
+               .packages = c("mgcv", "sfsmisc", "xgboost"), .options.snow = opts) %dorng%{
                  
                  if(all(d != .libPaths())) .libPaths(c(.libPaths(), d))
                  library(FOCI)
@@ -128,16 +129,12 @@ for (n in n.vec) {
                  for (s in 1:ncol(all.comb)){
                    x <- x.all[,all.comb[,s]]
                    dat <- data.frame(y, x)
-                   ms <- multi.spec(dat, B = n.split, return.predictor = FALSE, return.residual = FALSE) #,
-                                    # fitting = fitxg, predicting = predxg)
+                   ms <- multi.spec(dat, B = n.split, return.predictor = FALSE, return.residual = FALSE,
+                                    fitting = fitxg, predicting = predxg)
                    names(ms) <- paste(names(ms), paste(all.comb[,s], collapse=""), sep = "")
 
                    
                    out <- c(out, ms)
-                   if (length(stab(all.comb[,s])) == length(all.comb[,s])){
-                     ind <- 1:min(n/2, 1e4)
-                     out[[paste("H0", paste(all.comb[,s], collapse=""), sep = "")]] <- dhsic.test(eps[ind, 6], x[ind, ], method = "gamma")$p.value
-                   }
                  }
                  
                  
@@ -162,11 +159,6 @@ for (n in n.vec) {
     print(mes)
     print(median(res.pval.corr))
     
-    if (length(stab(all.comb[,s])) == length(all.comb[,s])){
-      res.H0 <- unlist(res[, paste("H0", mes, sep = "")])
-      simulation[[mes]]$H0 = res.H0
-      print(median(res.H0))
-    }
     for (j in 1:p.mes){
       # print(paste(j, ": ", sum(res.sel.in == j, na.rm = TRUE), sep = ""))
       print(paste(all.comb[j,s], ": ", sum(res.sel.out == j, na.rm = TRUE), sep = ""))
