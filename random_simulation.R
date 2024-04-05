@@ -193,4 +193,4 @@ rand_simulation <- function(nsim = 100, n.vec = 10^(2:5), extra.packages = NULL,
   }
   return(paste("results/", newdir, sep = ""))
 }
-rand_simulation(extra.packages = c("FOCI", "dHSIC"), extra.path = "/usr/local64.sfs/app/R/R_local/library")
+rand_simulation(n.vec = 10^(2:3), extra.packages = c("FOCI", "dHSIC"), extra.path = "/usr/local64.sfs/app/R/R_local/library")
