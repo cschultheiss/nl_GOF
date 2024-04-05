@@ -64,6 +64,8 @@ het_simulation <- function(nsim = 200, n.vec = 10^(2:5), extra.packages = NULL, 
   # first conditional moment E[H|X_2] up to normalization
   m2 <- Vectorize(function(x) integrate(function(h) h^2 * fhx1(h, x), 2 * min(h), 2 * max(h))$value)
   
+  RNGkind("L'Ecuyer-CMRG")
+  # make it reproducible
   # sample a large number to find range
   set.seed(42)
   n <- 1e7
@@ -93,7 +95,6 @@ het_simulation <- function(nsim = 200, n.vec = 10^(2:5), extra.packages = NULL, 
   n.split <- 25 # number of splits to assess well-specifaction
   p <- 2 # number of covariates
   
-  RNGkind("L'Ecuyer-CMRG")
   # make it reproducible
   set.seed(42)
   seed.vec <- sample(1:10000, length(n.vec))
