@@ -115,7 +115,7 @@ rand_simulation <- function(nsim = 100, n.vec = 10^(2:5), extra.packages = NULL,
     set.seed(seed.vec[seed.n])
     
     # initiliaze parralelisation
-    cl<-makeSOCKcluster(5)
+    cl<-makeSOCKcluster(16)
     registerDoSNOW(cl)
     tic()
     res<-foreach(gu = 1:nsim, .combine = rbind,
@@ -193,4 +193,4 @@ rand_simulation <- function(nsim = 100, n.vec = 10^(2:5), extra.packages = NULL,
   }
   return(paste("results/", newdir, sep = ""))
 }
-rand_simulation(10, 100, extra.packages = c("FOCI", "dHSIC"), extra.path = "/usr/local64.sfs/app/R/R_local/library")
+rand_simulation(extra.packages = c("FOCI", "dHSIC"), extra.path = "/usr/local64.sfs/app/R/R_local/library")
