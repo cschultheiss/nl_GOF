@@ -1,5 +1,5 @@
 rm(list = ls(all = TRUE))
-het_simulation <- function(nsim = 100, n.vec = 10^(2:5), extra.packages = NULL, extra.path = NULL){
+rand_simulation <- function(nsim = 100, n.vec = 10^(2:5), extra.packages = NULL, extra.path = NULL){
   # when called executes the simulation for Section 4
   # Input
   # nsim (integer): number of simulation runs per sample size
@@ -33,7 +33,7 @@ het_simulation <- function(nsim = 100, n.vec = 10^(2:5), extra.packages = NULL, 
   
   
   source("multi_spec.R", local = TRUE)
-  source("fitpred.R", loacl = TRUE)
+  source("fitpred.R", local = TRUE)
   
   commit <- revparse_single(revision = "HEAD")
   print(paste("Run on commit", commit$sha, 'i.e.:', commit$summary))
@@ -193,3 +193,4 @@ het_simulation <- function(nsim = 100, n.vec = 10^(2:5), extra.packages = NULL, 
   }
   return(paste("results/", newdir, sep = ""))
 }
+rand_simulation(10, 100)
