@@ -40,32 +40,46 @@ progress <- function(n, tag) {
 opts <- list(progress = progress)
 
 
-fx1 <- function(x) dnorm(x)
-fx2 <- function(x) dnorm(x, sd = sqrt(0.5))
-f1 <- function(x) sin(2 * x)
-fx12 <- function(x1, x2) fx1(x1) * fx2(x2 - f1(x1))
-norm <- Vectorize(function(x2) integrate(function(x1) fx12(x1, x2), 2 * min(x1), 2 * max(x1))$value)
-m1 <- Vectorize(function(x2) integrate(function(x1) x1 * fx12(x1, x2), 2 * min(x1), 2 * max(x1))$value)
-m2 <- Vectorize(function(x2) integrate(function(x1) x1^2 * fx12(x1, x2), 2 * min(x1), 2 * max(x1))$value)
+fh <- function(h) dnorm(h) # distribution of H
+fx1 <- function(x) dnorm(x, sd = sqrt(0.5)) # distribution of xi_1
+f1 <- function(h) sin(2 * h) # effect from H to X_1
+fhx1 <- function(h, x) fh(h) * fx1(x - f1(h)) # joint distribution of H and X_1
+# marginal distribution of X_1
+norm <- Vectorize(function(x) integrate(function(h) fhx1(h, x), 2 * min(h), 2 * max(h))$value)
+# first conditional moment E[H|X_1] up to normalization
+m1 <- Vectorize(function(x) integrate(function(h) h * fhx1(h, x), 2 * min(h), 2 * max(h))$value)
+# first conditional moment E[H|X_2] up to normalization
+m2 <- Vectorize(function(x) integrate(function(h) h^2 * fhx1(h, x), 2 * min(h), 2 * max(h))$value)
 
+# sample a large number to find range
+set.seed(42)
 n <- 1e7
-x1 <- rnorm(n)
+h <- rnorm(n)
 eps <- rnorm(n, sd = sqrt(0.5))
-x2 <- f1(x1) + eps 
-x.grid <- seq(quantile(x2, 0), quantile(x2, 1), length.out = 1000)
+x1 <- f1(h) + eps 
+# restrict to smaller grid
+x.grid <- seq(quantile(x1, 0), quantile(x1, 1), length.out = 1e3)
+# remove the large vectors
+rm(x1, eps)
+h <- c(min(h), max(h))
 norm.grid <- norm(x.grid)
+# enforce unimodality => more stable estimation
+x.max <- which.max(norm.grid)
+lower <- which(norm.grid[1:x.max] < cummax(norm.grid[1:x.max]))
+higher <- which(norm.grid[x.max:1e3] > cummin(norm.grid[x.max:1e3]))
+omit <- c(lower, higher)
+x.grid <- x.grid[-omit]
+norm.grid <- norm.grid[-omit]
+# fit splines for faster evaluation downstream
 ss1 <- smooth.spline(x.grid, m1(x.grid)/norm.grid, cv = TRUE)
 ss2 <- smooth.spline(x.grid, m2(x.grid)/norm.grid, cv = TRUE)
-rm(x1, x2, eps)
 
-# Ex <- function(x1, x2, x3) 5 * x1 * Ex1(x1 * sqrt(a^2 + 1/3)) + 2.5 * x2 * x3
 
-nsim <- 200
-n.vec <- 10^(2:5)
-n.split <- 25
-p <- 2
-b <- 1
-a <- 1
+
+nsim <- 200 # number of simulations 
+n.vec <- 10^(2:5) # sample sizes
+n.split <- 25 # number of splits to assess well-specifaction
+p <- 2 # number of covariates
 
 RNGkind("L'Ecuyer-CMRG")
 # make it reproducible
@@ -87,33 +101,34 @@ for (n in n.vec) {
   res<-foreach(gu = 1:nsim, .combine = rbind,
                .packages = c("mgcv", "sfsmisc", "xgboost"), .options.snow = opts) %dorng%{
                  
+                 # some packages must be load on the workers if not defined in default environment
                  if(all(d != .libPaths())) .libPaths(c(.libPaths(), d))
                    library(FOCI)
                    library(dHSIC)
                 
                 
-                 h <- rnorm(n)
-                 x1 <- f1(h) + rnorm(n, sd = sqrt(0.5))
-                 x2 <- (x1 + rnorm(n, sd = sqrt(0.5)))*sqrt(2/3)
+                 h <- rnorm(n) # simulate h
+                 x1 <- f1(h) + rnorm(n, sd = sqrt(0.5)) # simulate x1
+                 x2 <- (x1 + rnorm(n, sd = sqrt(0.5)))*sqrt(2/3) # simulate x2
                  
-                 y <- (abs(x2^2) + 2)/(abs(x2^2) + 1) * (h)
+                 y <- (abs(x2^2) + 2)/(abs(x2^2) + 1) * (h) # simulate 1
                  
-                 m1 <- (abs(x2^2) + 2)/(abs(x2^2) + 1) * (predict(ss1, x1)$y)
+                 m1 <- (abs(x2^2) + 2)/(abs(x2^2) + 1) * (predict(ss1, x1)$y) # calculate first moment
                  m2 <- ((abs(x2^2) + 2)/(abs(x2^2) + 1))^2 *
-                   (predict(ss2, x1)$y)
-                 eps0 <- (y - m1)/sqrt(m2 - m1^2)
+                   (predict(ss2, x1)$y) # calculate second moment
+                 eps0 <- (y - m1)/sqrt(m2 - m1^2) # calculate true residual
                  
                  dat <- data.frame(y, x1, x2)
                  steps.all <- steps.all0 <- rep(NA, p)
-                 fi.all <- allfitxg.het(dat)
-                 foci.all <- foci(fi.all$residuals, dat[,-1])
+                 fi.all <- allfitxg.het(dat) # fit on all data
+                 foci.all <- foci(fi.all$residuals, dat[,-1]) # apply FOCI once
                  steps.all[foci.all$selectedVar$index] <- diff(c(0, foci.all$stepT))
                  sel.all <- sapply(1:p, function(j) {
                    if (j %in% foci.all$selectedVar$index)
                      which(foci.all$selectedVar$index == j)
                    else
                      NA})
-                 foci.all0 <- foci(eps0, dat[,-1])
+                 foci.all0 <- foci(eps0, dat[,-1]) # apply FOCI with true residual
                  steps.all0[foci.all0$selectedVar$index] <- diff(c(0, foci.all0$stepT))
                  sel.all0 <- sapply(1:p, function(j) {
                    if (j %in% foci.all0$selectedVar$index)
@@ -121,7 +136,7 @@ for (n in n.vec) {
                    else
                      NA})
 
-                 
+                 # find extreme residua, i.e., likely negative normalization
                  div <- which(abs(fi.all$residuals) > (max(abs(fi.all$residuals)) - 1e-5))
                  if(length(div) > 0){
                    mse <- mean((fi.all$residuals - eps0)[-div]^2)
@@ -129,12 +144,12 @@ for (n in n.vec) {
                    mse <- mean((fi.all$residuals - eps0)^2)
                  }
                  
-                 rcor <- cor(fi.all$residuals, eps0, method = "spearman")
-                 rdif <- mean(abs(rank(fi.all$residuals) - rank(eps0)))
+                 rcor <- cor(fi.all$residuals, eps0, method = "spearman") # rank correlation
+                 rdif <- mean(abs(rank(fi.all$residuals) - rank(eps0))) # average misposition
                  
                  out <- multi.spec(dat, B = n.split, return.predictor = FALSE, return.residual = FALSE,
                                    fitting = fitxg.het, predicting = predxg.het, norming = normxg.het,
-                                   trafo = function(x) x)
+                                   trafo = function(x) x) # assess well-specification
 
                  out$values <- c(mse, rcor, rdif, length(div), sel.all0, sel.all, steps.all0, steps.all)
 
@@ -165,6 +180,7 @@ for (n in n.vec) {
   resname <- paste0("results n=", n, " ", format(Sys.time(), "%d-%b-%Y %H.%M"))
   # save the file to the folder
   if (save) save(simulation, file = paste("results/", newdir, "/", resname, ".RData", sep = ""))
+  # print some intermediate results
   print(median(res.pval.corr))
   print(apply(res.val[,1:4], 2, mean))
   print(apply(!is.na(res.val[,(4 + 1) : (4 + 2 * p)]), 2, mean))
