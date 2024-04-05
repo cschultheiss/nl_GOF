@@ -8,7 +8,7 @@ het_simulation <- function(nsim = 200, n.vec = 10^(2:5), extra.packages = NULL, 
   # extra.path (character): path to find these packages
   # Output (string): save location of the results folder
   if(!is.null(extra.path)){
-    d <- "/usr/local64.sfs/app/R/R_local/library"
+    d <- extra.path
     if(all(d != .libPaths())) .libPaths(c(.libPaths(), d))
   }
   
@@ -203,4 +203,4 @@ het_simulation <- function(nsim = 200, n.vec = 10^(2:5), extra.packages = NULL, 
   return(paste("results/", newdir, sep = ""))
 }
 
-het_simulation(16, 10^(2:3))
+het_simulation(16, 10^(2:3), extra.packages = c("FOCI", "dHSIC"), extra.path = "/usr/local64.sfs/app/R/R_local/library")
