@@ -83,7 +83,6 @@ het_simulation <- function(nsim = 200, n.vec = 10^(2:5), extra.packages = NULL, 
   lower <- which(norm.grid[1:x.max] < cummax(norm.grid[1:x.max]))
   higher <- which(norm.grid[x.max:1e3] > cummin(norm.grid[x.max:1e3]))
   omit <- c(lower, higher)
-  print(omit)
   if(length(omit) > 0){
     x.grid <- x.grid[-omit]
     norm.grid <- norm.grid[-omit]
@@ -204,4 +203,4 @@ het_simulation <- function(nsim = 200, n.vec = 10^(2:5), extra.packages = NULL, 
   return(paste("results/", newdir, sep = ""))
 }
 
-het_simulation(16, 10^(2:3), extra.packages = c("FOCI", "dHSIC"), extra.path = "/usr/local64.sfs/app/R/R_local/library")
+het_simulation(extra.packages = c("FOCI", "dHSIC"), extra.path = "/usr/local64.sfs/app/R/R_local/library")
