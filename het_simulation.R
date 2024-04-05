@@ -2,6 +2,10 @@ rm(list = ls(all = TRUE))
 d <- "/usr/local64.sfs/app/R/R_local/library"
 if(all(d != .libPaths())) .libPaths(c(.libPaths(), d))
 
+export.packages <- c("mgcv", "sfsmisc", "xgboost", "FOCI", "dHSIC")
+extra.packages <- c("FOCI", "dHSIC")
+export.packages <- setdiff(export.packages, extra.packages)
+
 require(tictoc)
 require(doRNG)
 require(doSNOW)
@@ -76,8 +80,8 @@ ss2 <- smooth.spline(x.grid, m2(x.grid)/norm.grid, cv = TRUE)
 
 
 
-nsim <- 200 # number of simulations 
-n.vec <- 10^(2:5) # sample sizes
+nsim <- 16 # number of simulations 
+n.vec <- 10^(2:3) # sample sizes
 n.split <- 25 # number of splits to assess well-specifaction
 p <- 2 # number of covariates
 
@@ -99,14 +103,14 @@ for (n in n.vec) {
   registerDoSNOW(cl)
   tic()
   res<-foreach(gu = 1:nsim, .combine = rbind,
-               .packages = c("mgcv", "sfsmisc", "xgboost"), .options.snow = opts) %dorng%{
+               .packages = export.packages, .options.snow = opts) %dorng%{
                  
                  # some packages must be load on the workers if not defined in default environment
-                 if(all(d != .libPaths())) .libPaths(c(.libPaths(), d))
-                   library(FOCI)
-                   library(dHSIC)
-                
-                
+                 if(!is.null(extra.packages)){
+                   if(all(d != .libPaths())) .libPaths(c(.libPaths(), d))
+                   lapply(extra.packages, require, character.only = TRUE)
+                 }
+                 
                  h <- rnorm(n) # simulate h
                  x1 <- f1(h) + rnorm(n, sd = sqrt(0.5)) # simulate x1
                  x2 <- (x1 + rnorm(n, sd = sqrt(0.5)))*sqrt(2/3) # simulate x2
