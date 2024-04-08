@@ -177,4 +177,4 @@ table5 <- function(file, foc.mat = NULL){
   return(list(analysis = all.out, foc.mat = foc.mat))
 }
 
-
+table5("data/dataset_k562_filtered.npz")
