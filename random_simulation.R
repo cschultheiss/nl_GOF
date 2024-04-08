@@ -14,13 +14,7 @@ rand_simulation <- function(nsim = 100, n.vec = 10^(2:5), extra.packages = NULL,
   
   export.packages <- c("mgcv", "sfsmisc", "xgboost", "FOCI", "dHSIC")
   export.packages <- setdiff(export.packages, extra.packages)
-  d <- "/usr/local64.sfs/app/R/R_local/library"
-  if(all(d != .libPaths())) .libPaths(c(.libPaths(), d))
-  
-  export.packages <- c("mgcv", "sfsmisc", "xgboost", "FOCI", "dHSIC")
-  extra.packages = c("FOCI", "dHSIC")
-  export.packages <- setdiff(export.packages, extra.packages)
-  
+
   require(tictoc)
   require(doRNG)
   require(doSNOW)
