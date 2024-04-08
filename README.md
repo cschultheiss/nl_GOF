@@ -1,5 +1,6 @@
 # Causal well-specification
 R Software for assessing causal well-specification of additive noise models
+
 multi_spec.R: implementation of the FOCI assessment using multiple splits <br>
 Function multi.spec() can be applied to data <br>
 split.R: contains the downstream proportion test <br>
