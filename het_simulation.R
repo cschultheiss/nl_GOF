@@ -202,5 +202,3 @@ het_simulation <- function(nsim = 200, n.vec = 10^(2:5), extra.packages = NULL, 
   }
   return(paste("results/", newdir, sep = ""))
 }
-
-het_simulation(extra.packages = c("FOCI", "dHSIC"), extra.path = "/usr/local64.sfs/app/R/R_local/library")
