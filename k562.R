@@ -55,7 +55,7 @@ table5 <- function(file, foc.mat = NULL){
   }
   
   if(is.null(foc.mat)){
-    cat("Searching Markov boundaries")
+    cat("Searching Markov boundaries \n")
     foc.mat <- foreach(j = 1:n.col, .combine = rbind) %do%{
       cat(paste(j, ""))
       foci.var(j)
@@ -69,7 +69,7 @@ table5 <- function(file, foc.mat = NULL){
   
   test.var <- function(i, preds){
     if (length(preds) < 1) return(NULL)
-
+    
     # see if this variable affects others
     rows <- which(mat["interventions"] == sel.var[i]) # environment where this variable is intervened on
     dati <- mat[["expression_matrix"]][rows, sel.col]
@@ -79,7 +79,7 @@ table5 <- function(file, foc.mat = NULL){
     }
     testi
   }
-
+  
   
   analyse.var <- function(y){
     preds <- which(ad[y, ] > 1)# covariates which seem to be in Markov boundary
@@ -93,7 +93,7 @@ table5 <- function(file, foc.mat = NULL){
       
       set.seed(4)
       # assess well-specification
-      msx <- multi.spec(data.frame(dat.reg), B = 25, omit.global = FALSE, return.predictor = TRUE, return.residual = TRUE,
+      msx <- multi.spec(data.frame(dat.reg), B = 25, omit.global = FALSE,
                         fitting = function(data, ind, res.ind) fitxg(data, ind, res.ind, ncol(data) - 1), predicting = predxg,
                         parallel = TRUE, sockets = 5, verbose = FALSE, export.functions = "fitxg")
       nsplit <- apply(!is.na(msx$steps), 2, sum) # how often is it not selected by FOCI
@@ -159,7 +159,7 @@ table5 <- function(file, foc.mat = NULL){
   for(y in 1:n.col){
     all.out[[y]] <- analyse.var(y)
   }
-  
+  cat("\n \n")
   y <- 0
   for (out in all.out){
     y <- y + 1
@@ -176,5 +176,3 @@ table5 <- function(file, foc.mat = NULL){
   }
   return(list(analysis = all.out, foc.mat = foc.mat))
 }
-
-table5("data/dataset_k562_filtered.npz")
