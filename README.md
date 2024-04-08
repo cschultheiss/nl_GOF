@@ -11,6 +11,7 @@ To create the data for the figures in the paper:
 
 The called plotting functions with explaining comments are stored in figures_fun.R
 
-To get Table 1 (in LaTeX encoding) for the analysis of the K562 et al.: run the function stored in k562_pc.R <br>
-The data must be preprocessed following the benchmark of [Chevalley et al. (2023)](https://arxiv.org/abs/2210.17283).
-
+To get Table 1 (in LaTeX encoding) for the analysis of the K562 et al.: run the function stored in k562.R <br>
+The data must be preprocessed following the benchmark of [Chevalley et al. (2023)](https://arxiv.org/abs/2210.17283). <br>
+Our results were obtained using version 1.4.1.1 of "xgboost". With other versions, they can differ a bit. <br>
+Also, "FOCI" with non-unique data is not deterministic, and the implementation ignores seeds in R. We added some checks to enforce consistent results, but there might be further edge cases not detected yet.
